@@ -3,13 +3,14 @@ package structtags
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 func testParser[T comparable](t *testing.T, str string, want T, wantOk bool) {
 	var got T
 	tv := reflect.TypeOf(got)
-	parser, ok := parsers[tv]
-	if !ok {
+	parser := getParseFunc(tv)
+	if parser == nil {
 		t.Fatalf("can't find a parser for type %q.", tv)
 	}
 
@@ -25,8 +26,8 @@ func testParser[T comparable](t *testing.T, str string, want T, wantOk bool) {
 		return
 	}
 
-	if got != want {
-		t.Errorf("parser[%s](%q) returns %v, want: %v", tv, str, got, want)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("parser[%s](%q) returns (%T)%v, want: (%T)%v", tv, str, got, got, want, want)
 	}
 }
 
@@ -169,6 +170,7 @@ func TestParseFloat(t *testing.T) {
 		testParser(t, tc.input, float32(0), false)
 	}
 }
+
 func TestParseBool(t *testing.T) {
 	succeeded := []struct {
 		input string
@@ -202,5 +204,30 @@ func TestParseBool(t *testing.T) {
 
 	for _, tc := range failure {
 		testParser(t, tc.input, bool(false), false)
+	}
+}
+
+func TestParseInterface(t *testing.T) {
+	succeeded := []struct {
+		input string
+		want  time.Time
+	}{
+		{"2024-11-25T20:50:00Z", time.Date(2024, 11, 25, 20, 50, 0, 0, time.UTC)},
+	}
+
+	failure := []struct {
+		input string
+	}{
+		{"123"},
+	}
+
+	for _, tc := range succeeded {
+		testParser(t, tc.input, tc.want, true)
+		testParser(t, tc.input, &tc.want, true)
+	}
+
+	for _, tc := range failure {
+		testParser(t, tc.input, time.Time{}, false)
+		testParser(t, tc.input, &time.Time{}, false)
 	}
 }

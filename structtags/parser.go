@@ -11,11 +11,11 @@ import (
 type parseFunc func(v reflect.Value, str string) error
 
 func getParseFunc(t reflect.Type) parseFunc {
-	if t.Implements(reflect.TypeOf(umarshalerType)) {
+	if t.Implements(umarshalerType) {
 		return parseUmarshaler
 	}
 
-	if reflect.PointerTo(t).Implements(reflect.TypeOf(umarshalerType)) {
+	if reflect.PointerTo(t).Implements(umarshalerType) {
 		return parseUmarshaler
 	}
 
@@ -99,11 +99,16 @@ func parseBool(v reflect.Value, str string) error {
 	return nil
 }
 
-var umarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+var umarshalerType = reflect.TypeFor[encoding.TextUnmarshaler]()
 
 func parseUmarshaler(v reflect.Value, str string) error {
-	if v.IsNil() {
-		v.Set(reflect.New(v.Type().Elem()))
+	switch v.Kind() {
+	case reflect.Pointer:
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+	case reflect.Struct:
+		v = v.Addr()
 	}
 
 	return v.Interface().(encoding.TextUnmarshaler).UnmarshalText([]byte(str))
