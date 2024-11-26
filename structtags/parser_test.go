@@ -1,6 +1,7 @@
 package structtags
 
 import (
+	"encoding"
 	"reflect"
 	"testing"
 	"time"
@@ -208,6 +209,8 @@ func TestParseBool(t *testing.T) {
 }
 
 func TestParseInterface(t *testing.T) {
+	var _ encoding.TextUnmarshaler = &time.Time{}
+
 	succeeded := []struct {
 		input string
 		want  time.Time
@@ -223,11 +226,33 @@ func TestParseInterface(t *testing.T) {
 
 	for _, tc := range succeeded {
 		testParser(t, tc.input, tc.want, true)
-		testParser(t, tc.input, &tc.want, true)
 	}
 
 	for _, tc := range failure {
 		testParser(t, tc.input, time.Time{}, false)
-		testParser(t, tc.input, &time.Time{}, false)
+	}
+}
+
+func TestParseDuration(t *testing.T) {
+	succeeded := []struct {
+		input string
+		want  time.Duration
+	}{
+		{"2h45m", time.Hour*2 + time.Minute*45},
+	}
+
+	failure := []struct {
+		input string
+	}{
+		{"123"},
+		{"abc"},
+	}
+
+	for _, tc := range succeeded {
+		testParser(t, tc.input, tc.want, true)
+	}
+
+	for _, tc := range failure {
+		testParser(t, tc.input, time.Duration(0), false)
 	}
 }

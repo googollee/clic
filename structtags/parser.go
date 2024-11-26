@@ -6,17 +6,19 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type parseFunc func(v reflect.Value, str string) error
 
+// getParseFunc doesn't accept a Pointer Type. Caller should check pointer and pass in Pointer.Elem().
 func getParseFunc(t reflect.Type) parseFunc {
-	if t.Implements(umarshalerType) {
+	if reflect.PointerTo(t).Implements(umarshalerType) {
 		return parseUmarshaler
 	}
 
-	if reflect.PointerTo(t).Implements(umarshalerType) {
-		return parseUmarshaler
+	if t == durationType {
+		return parseDuration
 	}
 
 	return parsers[t]
@@ -102,14 +104,21 @@ func parseBool(v reflect.Value, str string) error {
 var umarshalerType = reflect.TypeFor[encoding.TextUnmarshaler]()
 
 func parseUmarshaler(v reflect.Value, str string) error {
-	switch v.Kind() {
-	case reflect.Pointer:
-		if v.IsNil() {
-			v.Set(reflect.New(v.Type().Elem()))
-		}
-	case reflect.Struct:
+	if v.Kind() == reflect.Struct {
 		v = v.Addr()
 	}
 
 	return v.Interface().(encoding.TextUnmarshaler).UnmarshalText([]byte(str))
+}
+
+var durationType = reflect.TypeFor[time.Duration]()
+
+func parseDuration(v reflect.Value, str string) error {
+	dur, err := time.ParseDuration(str)
+	if err != nil {
+		return err
+	}
+
+	v.Set(reflect.ValueOf(dur))
+	return nil
 }
