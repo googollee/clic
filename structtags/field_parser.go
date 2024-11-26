@@ -9,44 +9,44 @@ import (
 	"time"
 )
 
-type parseFunc func(v reflect.Value, str string) error
+type parseFieldFunc func(v reflect.Value, str string) error
 
-// getParseFunc doesn't accept a Pointer Type. Caller should check pointer and pass in Pointer.Elem().
-func getParseFunc(t reflect.Type) parseFunc {
+// getParseFieldFunc doesn't accept a Pointer Type. Caller should check pointer and pass in Pointer.Elem().
+func getParseFieldFunc(t reflect.Type) parseFieldFunc {
 	if reflect.PointerTo(t).Implements(umarshalerType) {
-		return parseUmarshaler
+		return parseFieldUmarshaler
 	}
 
 	if t == durationType {
-		return parseDuration
+		return parseFieldDuration
 	}
 
 	return parsers[t]
 }
 
-var parsers = map[reflect.Type]parseFunc{
-	reflect.TypeOf(""):          parseString,
-	reflect.TypeOf(int(0)):      parseInt[int],
-	reflect.TypeOf(int64(0)):    parseInt[int64],
-	reflect.TypeOf(int32(0)):    parseInt[int32],
-	reflect.TypeOf(int16(0)):    parseInt[int16],
-	reflect.TypeOf(int8(0)):     parseInt[int8],
-	reflect.TypeOf(uint(0)):     parseUint[uint],
-	reflect.TypeOf(uint64(0)):   parseUint[uint64],
-	reflect.TypeOf(uint32(0)):   parseUint[uint32],
-	reflect.TypeOf(uint16(0)):   parseUint[uint16],
-	reflect.TypeOf(uint8(0)):    parseUint[uint8],
-	reflect.TypeOf(float64(0)):  parseFloat[float64],
-	reflect.TypeOf(float32(0)):  parseFloat[float32],
-	reflect.TypeOf(bool(false)): parseBool,
+var parsers = map[reflect.Type]parseFieldFunc{
+	reflect.TypeOf(""):          parseFieldString,
+	reflect.TypeOf(int(0)):      parseFieldInt[int],
+	reflect.TypeOf(int64(0)):    parseFieldInt[int64],
+	reflect.TypeOf(int32(0)):    parseFieldInt[int32],
+	reflect.TypeOf(int16(0)):    parseFieldInt[int16],
+	reflect.TypeOf(int8(0)):     parseFieldInt[int8],
+	reflect.TypeOf(uint(0)):     parseFieldUint[uint],
+	reflect.TypeOf(uint64(0)):   parseFieldUint[uint64],
+	reflect.TypeOf(uint32(0)):   parseFieldUint[uint32],
+	reflect.TypeOf(uint16(0)):   parseFieldUint[uint16],
+	reflect.TypeOf(uint8(0)):    parseFieldUint[uint8],
+	reflect.TypeOf(float64(0)):  parseFieldFloat[float64],
+	reflect.TypeOf(float32(0)):  parseFieldFloat[float32],
+	reflect.TypeOf(bool(false)): parseFieldBool,
 }
 
-func parseString(v reflect.Value, str string) error {
+func parseFieldString(v reflect.Value, str string) error {
 	v.Set(reflect.ValueOf(str))
 	return nil
 }
 
-func parseInt[Int ~int | ~int8 | ~int16 | ~int32 | ~int64](v reflect.Value, str string) error {
+func parseFieldInt[Int ~int | ~int8 | ~int16 | ~int32 | ~int64](v reflect.Value, str string) error {
 	i64, err := strconv.ParseInt(str, 10, 64)
 	if err != nil {
 		return fmt.Errorf("can't parse %q to an integer: %w", str, err)
@@ -56,7 +56,7 @@ func parseInt[Int ~int | ~int8 | ~int16 | ~int32 | ~int64](v reflect.Value, str 
 	return nil
 }
 
-func parseUint[UInt ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64](v reflect.Value, str string) error {
+func parseFieldUint[UInt ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64](v reflect.Value, str string) error {
 	base := 10
 	if strings.HasPrefix(str, "0x") {
 		base = 16
@@ -81,7 +81,7 @@ func parseUint[UInt ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64](v reflect.Valu
 	return nil
 }
 
-func parseFloat[Float ~float32 | ~float64](v reflect.Value, str string) error {
+func parseFieldFloat[Float ~float32 | ~float64](v reflect.Value, str string) error {
 	f64, err := strconv.ParseFloat(str, 64)
 	if err != nil {
 		return fmt.Errorf("can't parse %q to a float: %w", str, err)
@@ -91,7 +91,7 @@ func parseFloat[Float ~float32 | ~float64](v reflect.Value, str string) error {
 	return nil
 }
 
-func parseBool(v reflect.Value, str string) error {
+func parseFieldBool(v reflect.Value, str string) error {
 	b, err := strconv.ParseBool(str)
 	if err != nil {
 		return fmt.Errorf("can't parse %q to a bool: %w", str, err)
@@ -103,7 +103,7 @@ func parseBool(v reflect.Value, str string) error {
 
 var umarshalerType = reflect.TypeFor[encoding.TextUnmarshaler]()
 
-func parseUmarshaler(v reflect.Value, str string) error {
+func parseFieldUmarshaler(v reflect.Value, str string) error {
 	if v.Kind() == reflect.Struct {
 		v = v.Addr()
 	}
@@ -113,7 +113,7 @@ func parseUmarshaler(v reflect.Value, str string) error {
 
 var durationType = reflect.TypeFor[time.Duration]()
 
-func parseDuration(v reflect.Value, str string) error {
+func parseFieldDuration(v reflect.Value, str string) error {
 	dur, err := time.ParseDuration(str)
 	if err != nil {
 		return err

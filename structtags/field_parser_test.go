@@ -7,10 +7,10 @@ import (
 	"time"
 )
 
-func testParser[T comparable](t *testing.T, str string, want T, wantOk bool) {
+func testFieldParser[T comparable](t *testing.T, str string, want T, wantOk bool) {
 	var got T
 	tv := reflect.TypeOf(got)
-	parser := getParseFunc(tv)
+	parser := getParseFieldFunc(tv)
 	if parser == nil {
 		t.Fatalf("can't find a parser for type %q.", tv)
 	}
@@ -32,7 +32,7 @@ func testParser[T comparable](t *testing.T, str string, want T, wantOk bool) {
 	}
 }
 
-func TestParseString(t *testing.T) {
+func TestParseFieldString(t *testing.T) {
 	succeeded := []struct {
 		input string
 	}{
@@ -41,11 +41,11 @@ func TestParseString(t *testing.T) {
 	}
 
 	for _, tc := range succeeded {
-		testParser(t, tc.input, tc.input, true)
+		testFieldParser(t, tc.input, tc.input, true)
 	}
 }
 
-func TestParseInt(t *testing.T) {
+func TestParseFieldInt(t *testing.T) {
 	succeeded := []struct {
 		input string
 		want  int64
@@ -73,23 +73,23 @@ func TestParseInt(t *testing.T) {
 	}
 
 	for _, tc := range succeeded {
-		testParser(t, tc.input, int(tc.want), true)
-		testParser(t, tc.input, int64(tc.want), true)
-		testParser(t, tc.input, int32(tc.want), true)
-		testParser(t, tc.input, int16(tc.want), true)
-		testParser(t, tc.input, int8(tc.want), true)
+		testFieldParser(t, tc.input, int(tc.want), true)
+		testFieldParser(t, tc.input, int64(tc.want), true)
+		testFieldParser(t, tc.input, int32(tc.want), true)
+		testFieldParser(t, tc.input, int16(tc.want), true)
+		testFieldParser(t, tc.input, int8(tc.want), true)
 	}
 
 	for _, tc := range failure {
-		testParser(t, tc.input, int(0), false)
-		testParser(t, tc.input, int64(0), false)
-		testParser(t, tc.input, int32(0), false)
-		testParser(t, tc.input, int16(0), false)
-		testParser(t, tc.input, int8(0), false)
+		testFieldParser(t, tc.input, int(0), false)
+		testFieldParser(t, tc.input, int64(0), false)
+		testFieldParser(t, tc.input, int32(0), false)
+		testFieldParser(t, tc.input, int16(0), false)
+		testFieldParser(t, tc.input, int8(0), false)
 	}
 }
 
-func TestParseUint(t *testing.T) {
+func TestParseFieldUint(t *testing.T) {
 	succeeded := []struct {
 		input string
 		want  uint64
@@ -120,23 +120,23 @@ func TestParseUint(t *testing.T) {
 	}
 
 	for _, tc := range succeeded {
-		testParser(t, tc.input, uint(tc.want), true)
-		testParser(t, tc.input, uint64(tc.want), true)
-		testParser(t, tc.input, uint32(tc.want), true)
-		testParser(t, tc.input, uint16(tc.want), true)
-		testParser(t, tc.input, uint8(tc.want), true)
+		testFieldParser(t, tc.input, uint(tc.want), true)
+		testFieldParser(t, tc.input, uint64(tc.want), true)
+		testFieldParser(t, tc.input, uint32(tc.want), true)
+		testFieldParser(t, tc.input, uint16(tc.want), true)
+		testFieldParser(t, tc.input, uint8(tc.want), true)
 	}
 
 	for _, tc := range failure {
-		testParser(t, tc.input, uint(0), false)
-		testParser(t, tc.input, uint64(0), false)
-		testParser(t, tc.input, uint32(0), false)
-		testParser(t, tc.input, uint16(0), false)
-		testParser(t, tc.input, uint8(0), false)
+		testFieldParser(t, tc.input, uint(0), false)
+		testFieldParser(t, tc.input, uint64(0), false)
+		testFieldParser(t, tc.input, uint32(0), false)
+		testFieldParser(t, tc.input, uint16(0), false)
+		testFieldParser(t, tc.input, uint8(0), false)
 	}
 }
 
-func TestParseFloat(t *testing.T) {
+func TestParseFieldFloat(t *testing.T) {
 	succeeded := []struct {
 		input string
 		want  float64
@@ -162,17 +162,17 @@ func TestParseFloat(t *testing.T) {
 	}
 
 	for _, tc := range succeeded {
-		testParser(t, tc.input, float64(tc.want), true)
-		testParser(t, tc.input, float32(tc.want), true)
+		testFieldParser(t, tc.input, float64(tc.want), true)
+		testFieldParser(t, tc.input, float32(tc.want), true)
 	}
 
 	for _, tc := range failure {
-		testParser(t, tc.input, float64(0), false)
-		testParser(t, tc.input, float32(0), false)
+		testFieldParser(t, tc.input, float64(0), false)
+		testFieldParser(t, tc.input, float32(0), false)
 	}
 }
 
-func TestParseBool(t *testing.T) {
+func TestParseFieldBool(t *testing.T) {
 	succeeded := []struct {
 		input string
 		want  bool
@@ -200,15 +200,15 @@ func TestParseBool(t *testing.T) {
 	}
 
 	for _, tc := range succeeded {
-		testParser(t, tc.input, tc.want, true)
+		testFieldParser(t, tc.input, tc.want, true)
 	}
 
 	for _, tc := range failure {
-		testParser(t, tc.input, bool(false), false)
+		testFieldParser(t, tc.input, bool(false), false)
 	}
 }
 
-func TestParseInterface(t *testing.T) {
+func TestParseFieldInterface(t *testing.T) {
 	var _ encoding.TextUnmarshaler = &time.Time{}
 
 	succeeded := []struct {
@@ -225,15 +225,15 @@ func TestParseInterface(t *testing.T) {
 	}
 
 	for _, tc := range succeeded {
-		testParser(t, tc.input, tc.want, true)
+		testFieldParser(t, tc.input, tc.want, true)
 	}
 
 	for _, tc := range failure {
-		testParser(t, tc.input, time.Time{}, false)
+		testFieldParser(t, tc.input, time.Time{}, false)
 	}
 }
 
-func TestParseDuration(t *testing.T) {
+func TestParseFieldDuration(t *testing.T) {
 	succeeded := []struct {
 		input string
 		want  time.Duration
@@ -249,10 +249,10 @@ func TestParseDuration(t *testing.T) {
 	}
 
 	for _, tc := range succeeded {
-		testParser(t, tc.input, tc.want, true)
+		testFieldParser(t, tc.input, tc.want, true)
 	}
 
 	for _, tc := range failure {
-		testParser(t, tc.input, time.Duration(0), false)
+		testFieldParser(t, tc.input, time.Duration(0), false)
 	}
 }
