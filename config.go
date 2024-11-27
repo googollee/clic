@@ -16,29 +16,37 @@ RegisterWithCallback registers a  `Config` struct with the `name` as the scope n
 
 Example:
 
-		package log
+	package log
 
-		var logger *slog.Logger
+	import (
+		"fmt"
+		"log/slog"
+		"os"
 
-		type config struct {
-			Format string `clic:format,json,the format of logging [json,text]`
-		}
+		"github.com/googollee/clic"
+	)
 
-		func initLogger(ctx context.Context, cfg *config) error {
-			switch cfg.Format{
-			case "json":
-			  logger = slog.New(slog.NewJSONHandler(os.Stderr))
-			case "text":
-			  logger = slog.New(slog.NewTextHandler(os.Stderr))
-			default:
-			  return fmt.Errorf("invalid log format: %q", cfg.Format)
-		}
-	  	return nil
-		}
+	var logger *slog.Logger
 
-		func init() {
-			clic.RegisterWithCallback("log", initLogger)
-		}
+	type config struct {
+		Format string `clic:"format,json,the format of logging [json,text]"`
+	}
+
+	func initLogger(ctx context.Context, cfg *config) error {
+		switch cfg.Format{
+		case "json":
+			logger = slog.New(slog.NewJSONHandler(os.Stderr))
+		case "text":
+			logger = slog.New(slog.NewTextHandler(os.Stderr))
+		default:
+			return fmt.Errorf("invalid log format: %q", cfg.Format)
+	}
+		return nil
+	}
+
+	func init() {
+		clic.RegisterWithCallback("log", initLogger)
+	}
 */
 func RegisterWithCallback[Config any](name string, callback func(ctx context.Context, cfg *Config) error) {
 }
@@ -50,7 +58,10 @@ Example:
 
 	package main
 
-	import "library/database"
+	import (
+		"library/database"
+		"github.com/googollee/clic"
+	)
 
 	func main() {
 		dbConfig := clic.RegisterAndGet[database.Config]("database")
