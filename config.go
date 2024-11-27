@@ -12,37 +12,48 @@ package clic
 import "context"
 
 /*
-RegisterWithCallback registers an Initializer instance `value` with the `name` as the scope name. [Init] function parses configuration from a file, environment or flags, stores into `value`, then call `value.Init()`. The `value` provider could initialize global instances in `value.Init()`.
+RegisterWithCallback registers a  `Config` struct with the `name` as the scope name and `callback` function to consume the parsed instance of `Config`. [Init] function parses configuration from a file, environment or flags, stores into an instance of `Config`, then call `callback` with that instance. Then `callback` function could initialize global instances. If `callback` returns an error, [Init] fails and returns a wrapped error.
 
 Example:
 
-	package subpack
+		package log
 
-	var singletonInstance int
+		var logger *slog.Logger
 
-	type config struct {
-		Int int `clic:"int,10,the value of the global instance"`
-	}
+		type config struct {
+			Format string `clic:format,json,the format of logging [json,text]`
+		}
 
-	func (c config) Init(ctx context.Context) error {
-		singletonInstance = c.Int
-	}
+		func initLogger(ctx context.Context, cfg *config) error {
+			switch cfg.Format{
+			case "json":
+			  logger = slog.New(slog.NewJSONHandler(os.Stderr))
+			case "text":
+			  logger = slog.New(slog.NewTextHandler(os.Stderr))
+			default:
+			  return fmt.Errorf("invalid log format: %q", cfg.Format)
+		}
+	  	return nil
+		}
 
-	func init() {
-		clic.RegisterWithCallback[config]("subpack")
-	}
+		func init() {
+			clic.RegisterWithCallback("log", initLogger)
+		}
 */
-func RegisterWithCallback[T any](name string, callback func(ctx context.Context, cfg *T) error) {}
+func RegisterWithCallback[Config any](name string, callback func(ctx context.Context, cfg *Config) error) {
+}
 
 /*
-RegisterAndGet registers an instance `value` with the `name` as the scope name and returns a function to get parsed `value` from the context. [Init] function parses configuration from a file, environment or flags, stores into `value`, then call `value.Init()`.
+RegisterAndGet registers a `Config` struct with the `name` as the scope name and returns a function `getter` to get the `Config` instance from the context. [Init] function parses configuration from a file, environment or flags, stores a `Config` instance into the returned context.
 
 Example:
 
 	package main
 
+	import "library/database"
+
 	func main() {
-		dbConfig := clic.RegisterAndGet[db.Config]("database")
+		dbConfig := clic.RegisterAndGet[database.Config]("database")
 
 		ctx, err := clic.Init(context.Background())
 		if err != nil {
@@ -52,7 +63,7 @@ Example:
 		db := database.New(dbConfig(ctx))
 	}
 */
-func RegisterAndGet[T any](name string) (getter func(ctx context.Context) *T) {
+func RegisterAndGet[Config any](name string) (getter func(ctx context.Context) *Config) {
 	return
 }
 
