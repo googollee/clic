@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/googollee/go-cfg/structtags"
+	"github.com/googollee/clic/structtags"
 )
 
 func TestFindEndFieldHaveSameIndex(t *testing.T) {

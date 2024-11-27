@@ -1,4 +1,4 @@
-module github.com/googollee/go-cfg
+module github.com/googollee/clic
 
 go 1.23.0
 
