@@ -74,14 +74,14 @@ Example:
 	}
 
 	func initLogger(ctx context.Context, cfg *config) error {
-		switch cfg.Format{
+		switch cfg.Format {
 		case "json":
 			logger = slog.New(slog.NewJSONHandler(os.Stderr))
 		case "text":
 			logger = slog.New(slog.NewTextHandler(os.Stderr))
 		default:
 			return fmt.Errorf("invalid log format: %q", cfg.Format)
-	}
+		}
 		return nil
 	}
 
