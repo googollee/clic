@@ -19,11 +19,7 @@ Example:
 	package log
 
 	import (
-		"fmt"
-		"log/slog"
-		"os"
-
-		"github.com/googollee/clic"
+		// ...
 	)
 
 	var logger *slog.Logger
@@ -59,8 +55,7 @@ Example:
 	package main
 
 	import (
-		"library/database"
-		"github.com/googollee/clic"
+		// ...
 	)
 
 	func main() {
