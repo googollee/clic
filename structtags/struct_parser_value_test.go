@@ -9,10 +9,10 @@ import (
 )
 
 type testValueStruct struct {
-	Int   int  `clic:"int"`
-	PInt  *int `clic:"pint"`
+	Int   int  `clic:"int,10"`
+	PInt  *int `clic:"pint,20"`
 	Inner struct {
-		Dur time.Duration `clic:"dur"`
+		Dur time.Duration `clic:"dur,1h"`
 	} `clic:"inner"`
 }
 
@@ -23,25 +23,52 @@ func TestParseStructValue(t *testing.T) {
 		t.Fatalf("ParseStruct(%T) returns an error: %v, want no error", value, err)
 	}
 
-	fieldStrings := []string{"10", "20", "1h"}
-	i := 20
-	want := testValueStruct{
-		Int:  10,
-		PInt: &i,
-	}
-	want.Inner.Dur = time.Hour
-
-	if got, want := len(fields), len(fieldStrings); got != want {
-		t.Fatalf("len(fields) = %d should equal to len(fieldStrings) = %d, which is not", got, want)
-	}
-
-	for i, fieldString := range fieldStrings {
-		if err := fields[i].Parser(fields[i].Value, fieldString); err != nil {
-			t.Fatalf("Field %v: Parse(%q) returns an error: %v, want no error", fields[i].Name, fieldString, err)
+	t.Run("DefaultValue", func(t *testing.T) {
+		i := 20
+		wantDefault := testValueStruct{
+			Int:  10,
+			PInt: &i,
 		}
-	}
+		wantDefault.Inner.Dur = time.Hour
 
-	if diff := cmp.Diff(value, want); diff != "" {
-		t.Errorf("Diff: (-got, +want)\n%s", diff)
+		if diff := cmp.Diff(value, wantDefault); diff != "" {
+			t.Errorf("Diff: (-got, +want)\n%s", diff)
+		}
+	})
+
+	t.Run("SetValue", func(t *testing.T) {
+		fieldStrings := []string{"20", "40", "2h"}
+		i := 40
+		want := testValueStruct{
+			Int:  20,
+			PInt: &i,
+		}
+		want.Inner.Dur = 2 * time.Hour
+
+		if got, want := len(fields), len(fieldStrings); got != want {
+			t.Fatalf("len(fields) = %d should equal to len(fieldStrings) = %d, which is not", got, want)
+		}
+
+		for i, fieldString := range fieldStrings {
+			if err := fields[i].Parser(fields[i].Value, fieldString); err != nil {
+				t.Fatalf("Field %v: Parse(%q) returns an error: %v, want no error", fields[i].Name, fieldString, err)
+			}
+		}
+
+		if diff := cmp.Diff(value, want); diff != "" {
+			t.Errorf("Diff: (-got, +want)\n%s", diff)
+		}
+	})
+}
+
+type testInvalidValueStruct struct {
+	Int int `clic:"int,abc"`
+}
+
+func TestParseStructInvalidValue(t *testing.T) {
+	var value testInvalidValueStruct
+	_, err := ParseStruct(reflect.ValueOf(&value).Elem(), []string{"test"})
+	if err == nil {
+		t.Fatalf("ParseStruct(%T) returns no error, want an parsing error", value)
 	}
 }

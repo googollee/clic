@@ -51,6 +51,11 @@ func ParseStruct(v reflect.Value, name []string) ([]Field, error) {
 		if parser := getParseFieldFunc(vfieldType); parser != nil {
 			f.Parser = parser
 			f.Value = vfieldValue
+			if f.DefaultString != "" {
+				if err := f.Parser(f.Value, f.DefaultString); err != nil {
+					return nil, fmt.Errorf("can't parse default value %q for field %v: %w", f.DefaultString, f.Name, err)
+				}
+			}
 			ret = append(ret, f)
 			continue
 		}
