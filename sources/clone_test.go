@@ -45,14 +45,20 @@ func TestFindEndFieldHaveSameIndex(t *testing.T) {
 	}
 }
 
+func parserString(v reflect.Value, str string) error {
+	v.Set(reflect.ValueOf(str))
+	return nil
+}
+
 func TestNewFromFields(t *testing.T) {
+	str := "abc"
 	tests := []struct {
 		wantDefault string
 		checkString string
 		inputFields []structtags.Field
 	}{
 		{`{"a1":"abc"}`, `{"a1":"123"}`, []structtags.Field{
-			{Name: []string{"a1"}, Value: reflect.ValueOf("abc")},
+			{Name: []string{"a1"}, Parser: parserString, Value: reflect.ValueOf(&str).Elem()},
 		}},
 	}
 

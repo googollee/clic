@@ -22,7 +22,11 @@ func (f Field) Set(str string) error {
 	return f.Parser(f.Value, str)
 }
 
-func (f Field) TextUnmarshal(buf []byte) error {
+func (f Field) MarshalText() ([]byte, error) {
+	return []byte(f.String()), nil
+}
+
+func (f Field) UnmarshalText(buf []byte) error {
 	return f.Parser(f.Value, string(buf))
 }
 

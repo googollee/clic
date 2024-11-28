@@ -20,7 +20,7 @@ func newFromFields(fields []structtags.Field, index int, tagFmt string) reflect.
 			continue
 		}
 
-		wantValues[fields[0].Name[index]] = fields[0].Value
+		wantValues[fields[0].Name[index]] = reflect.ValueOf(fields[0])
 		fields = fields[1:]
 	}
 
@@ -37,10 +37,10 @@ func newFromFields(fields []structtags.Field, index int, tagFmt string) reflect.
 	typ := reflect.StructOf(wantFields)
 	ret := reflect.New(typ)
 	for name, value := range wantValues {
-		if !value.IsZero() {
-			ret.Elem().FieldByName("Field_" + name).Set(value)
-		}
+		ret.Elem().FieldByName("Field_" + name).Set(value)
 	}
+
+	fmt.Printf("%#v\n", ret.Interface())
 
 	return ret
 }
