@@ -15,7 +15,7 @@ type Field struct {
 }
 
 func (f Field) String() string {
-	return fmt.Sprintf("%s", f.Value.Interface())
+	return fmt.Sprintf("%v", f.Value.Interface())
 }
 
 func (f Field) Set(str string) error {

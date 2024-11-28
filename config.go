@@ -11,7 +11,7 @@ package clic
 import "context"
 
 /*
-RegisterAndGet registers a "Config" struct with the "name" as the scope name and returns a function "getter" to get the "Config" instance from the context. [Init] function parses configuration from a file, environment or flags, stores a "Config" instance into the returned context.
+RegisterAndGet registers a "Config" struct with the "name" as the scope name and returns a function "getter" to get the "Config" instance after calling [Init] function.
 
 Example:
 
@@ -27,15 +27,15 @@ Example:
 		ctx := context.Background()
 		clic.Init(ctx)
 
-		db := database.New(dbConfig(ctx))
+		db := database.New(dbConfig())
 	}
 */
-func RegisterAndGet[Config any](name string) (getter func(ctx context.Context) *Config) {
+func RegisterAndGet[Config any](name string) (getter func() *Config) {
 	return
 }
 
 /*
-RegisterWithCallback registers a  "Config" struct with the "name" as the scope name and "callback" function to consume the parsed instance of "Config". [Init] function parses configuration from a file, environment or flags, stores into an instance of "Config", then call "callback" with that instance. Then "callback" function could initialize global instances. If "callback" returns an error, [Init] fails and returns a wrapped error.
+RegisterWithCallback registers a "Config" struct with the "name" as the scope name and a "callback" function to consume the parsed instance of "Config". [Init] function parses configuration from a file, environment or flags, stores into an instance of "Config", then calls "callback" with that instance. "callback" function could initialize global instances. If "callback" returns an error, [Init] fails and the binary exits.
 
 Example:
 

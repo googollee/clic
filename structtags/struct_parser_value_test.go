@@ -36,22 +36,46 @@ func TestParseStructValue(t *testing.T) {
 		}
 	})
 
-	t.Run("SetValue", func(t *testing.T) {
-		fieldStrings := []string{"20", "40", "2h"}
-		i := 40
-		want := testValueStruct{
-			Int:  20,
-			PInt: &i,
-		}
-		want.Inner.Dur = 2 * time.Hour
+	fieldStrings := []string{"20", "40", "2h10m20s"}
+	i := 40
+	want := testValueStruct{
+		Int:  20,
+		PInt: &i,
+	}
+	want.Inner.Dur = 2*time.Hour + 10*time.Minute + 20*time.Second
 
+	t.Run("TextUnmarshal", func(t *testing.T) {
 		if got, want := len(fields), len(fieldStrings); got != want {
 			t.Fatalf("len(fields) = %d should equal to len(fieldStrings) = %d, which is not", got, want)
 		}
 
 		for i, fieldString := range fieldStrings {
-			if err := fields[i].Parser(fields[i].Value, fieldString); err != nil {
+			if err := fields[i].TextUnmarshal([]byte(fieldString)); err != nil {
 				t.Fatalf("Field %v: Parse(%q) returns an error: %v, want no error", fields[i].Name, fieldString, err)
+			}
+
+			if got, want := fields[i].String(), fieldString; got != want {
+				t.Errorf("Field %v: String() = %q, want: %q", fields[i].Name, got, want)
+			}
+		}
+
+		if diff := cmp.Diff(value, want); diff != "" {
+			t.Errorf("Diff: (-got, +want)\n%s", diff)
+		}
+	})
+
+	t.Run("ValueSet", func(t *testing.T) {
+		if got, want := len(fields), len(fieldStrings); got != want {
+			t.Fatalf("len(fields) = %d should equal to len(fieldStrings) = %d, which is not", got, want)
+		}
+
+		for i, fieldString := range fieldStrings {
+			if err := fields[i].Set(fieldString); err != nil {
+				t.Fatalf("Field %v: Parse(%q) returns an error: %v, want no error", fields[i].Name, fieldString, err)
+			}
+
+			if got, want := fields[i].String(), fieldString; got != want {
+				t.Errorf("Field %v: String() = %q, want: %q", fields[i].Name, got, want)
 			}
 		}
 
