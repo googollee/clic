@@ -10,8 +10,20 @@ type Field struct {
 	Name          []string
 	DefaultString string
 	Description   string
-	Parser        parseFieldFunc
+	Parser        ParseFieldFunc
 	Value         reflect.Value
+}
+
+func (f Field) String() string {
+	return fmt.Sprintf("%s", f.Value.Interface())
+}
+
+func (f Field) Set(str string) error {
+	return f.Parser(f.Value, str)
+}
+
+func (f Field) TextUnmarshal(buf []byte) error {
+	return f.Parser(f.Value, string(buf))
 }
 
 func ParseStruct(v reflect.Value, name []string) ([]Field, error) {

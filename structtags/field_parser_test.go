@@ -2,7 +2,10 @@ package structtags
 
 import (
 	"encoding"
+	"flag"
+	"fmt"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 )
@@ -208,7 +211,7 @@ func TestParseFieldBool(t *testing.T) {
 	}
 }
 
-func TestParseFieldInterface(t *testing.T) {
+func TestParseFieldTextUnmarshaler(t *testing.T) {
 	var _ encoding.TextUnmarshaler = &time.Time{}
 
 	succeeded := []struct {
@@ -230,6 +233,47 @@ func TestParseFieldInterface(t *testing.T) {
 
 	for _, tc := range failure {
 		testFieldParser(t, tc.input, time.Time{}, false)
+	}
+}
+
+type enumValue string
+
+func (v enumValue) String() string {
+	return string(v)
+}
+
+func (v *enumValue) Set(s string) error {
+	if !slices.Contains([]string{"a", "b", "c"}, s) {
+		return fmt.Errorf("invalid enumValue: %q", s)
+	}
+
+	*v = enumValue(s)
+	return nil
+}
+
+func TestParseFieldFlagValue(t *testing.T) {
+	var value enumValue
+	var _ flag.Value = &value
+
+	succeeded := []struct {
+		input string
+		want  enumValue
+	}{
+		{"a", enumValue("a")},
+	}
+
+	failure := []struct {
+		input string
+	}{
+		{"123"},
+	}
+
+	for _, tc := range succeeded {
+		testFieldParser(t, tc.input, tc.want, true)
+	}
+
+	for _, tc := range failure {
+		testFieldParser(t, tc.input, enumValue(""), false)
 	}
 }
 

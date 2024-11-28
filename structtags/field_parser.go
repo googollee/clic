@@ -2,6 +2,7 @@ package structtags
 
 import (
 	"encoding"
+	"flag"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -9,12 +10,16 @@ import (
 	"time"
 )
 
-type parseFieldFunc func(v reflect.Value, str string) error
+type ParseFieldFunc func(v reflect.Value, str string) error
 
 // getParseFieldFunc doesn't accept a Pointer Type. Caller should check pointer and pass in Pointer.Elem().
-func getParseFieldFunc(t reflect.Type) parseFieldFunc {
+func getParseFieldFunc(t reflect.Type) ParseFieldFunc {
 	if reflect.PointerTo(t).Implements(umarshalerType) {
 		return parseFieldUmarshaler
+	}
+
+	if reflect.PointerTo(t).Implements(flagValueType) {
+		return parseFieldFlagValue
 	}
 
 	if t == durationType {
@@ -24,7 +29,7 @@ func getParseFieldFunc(t reflect.Type) parseFieldFunc {
 	return parsers[t]
 }
 
-var parsers = map[reflect.Type]parseFieldFunc{
+var parsers = map[reflect.Type]ParseFieldFunc{
 	reflect.TypeOf(""):          parseFieldString,
 	reflect.TypeOf(int(0)):      parseFieldInt[int],
 	reflect.TypeOf(int64(0)):    parseFieldInt[int64],
@@ -104,11 +109,21 @@ func parseFieldBool(v reflect.Value, str string) error {
 var umarshalerType = reflect.TypeFor[encoding.TextUnmarshaler]()
 
 func parseFieldUmarshaler(v reflect.Value, str string) error {
-	if v.Kind() == reflect.Struct {
+	if v.Kind() != reflect.Pointer {
 		v = v.Addr()
 	}
 
 	return v.Interface().(encoding.TextUnmarshaler).UnmarshalText([]byte(str))
+}
+
+var flagValueType = reflect.TypeFor[flag.Value]()
+
+func parseFieldFlagValue(v reflect.Value, str string) error {
+	if v.Kind() != reflect.Pointer {
+		v = v.Addr()
+	}
+
+	return v.Interface().(flag.Value).Set(str)
 }
 
 var durationType = reflect.TypeFor[time.Duration]()
