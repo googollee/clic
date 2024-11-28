@@ -60,6 +60,7 @@ Example:
 	}
 
 	type logConfig struct {
+		// `clic` tag format: <name>,<default value>,<description>
 		Level string `clic:"level,info,the minimum level of logging: <debug|info|warn|error>"`
 	}
 
