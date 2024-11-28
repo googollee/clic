@@ -16,22 +16,20 @@ RegisterAndGet registers a `Config` struct with the `name` as the scope name and
 
 Example:
 
-	package main
+		package main
 
-	import (
-		// ...
-	)
+		import (
+			// ...
+		)
 
-	var dbConfig = clic.RegisterAndGet[database.Config]("database")
+		var dbConfig = clic.RegisterAndGet[database.Config]("database")
 
-	func main() {
-		ctx, err := clic.Init(context.Background())
-		if err != nil {
-			panic(err)
+		func main() {
+	    ctx := context.Background()
+			clic.Init(ctx)
+
+			db := database.New(dbConfig(ctx))
 		}
-
-		db := database.New(dbConfig(ctx))
-	}
 */
 func RegisterAndGet[Config any](name string) (getter func(ctx context.Context) *Config) {
 	return
@@ -42,61 +40,49 @@ RegisterWithCallback registers a  `Config` struct with the `name` as the scope n
 
 Example:
 
-- `main.go`
-
 	package main
 
 	import (
-		// ...
+	  // ...
 	)
 
-	func main() {
-		ctx, err := clic.Init(context.Background())
-		if err != nil {
-			panic(err)
-		}
-
-		log.Info("Hello, clic!")
+	type logConfig struct {
+	  Level string `clic:"level,info,the minimum level of logging: <debug|info|warn|error>"`
 	}
 
-- `log.go`
+	func initLogger(ctx context.Context, cfg *logConfig) error {
+	  switch cfg.Level {
+	  case "debug":
+	    slog.SetLogLoggerLevel(slog.LevelDebug)
+	  case "info":
+	    slog.SetLogLoggerLevel(slog.LevelInfo)
+	  case "warn":
+	    slog.SetLogLoggerLevel(slog.LevelWarn)
+	  case "Error":
+	    slog.SetLogLoggerLevel(slog.LevelError)
+	  default:
+	    return fmt.Errorf("invalid log level: %q", cfg.Level)
+	  }
 
-	package log
-
-	import (
-		// ...
-	)
-
-	var logger *slog.Logger
-
-	type config struct {
-		Format string `clic:"format,json,the format of logging [json,text]"`
-	}
-
-	func initLogger(ctx context.Context, cfg *config) error {
-		switch cfg.Format {
-		case "json":
-			logger = slog.New(slog.NewJSONHandler(os.Stderr))
-		case "text":
-			logger = slog.New(slog.NewTextHandler(os.Stderr))
-		default:
-			return fmt.Errorf("invalid log format: %q", cfg.Format)
-		}
-		return nil
+	  return nil
 	}
 
 	func init() {
-		clic.RegisterWithCallback("log", initLogger)
+	  clic.RegisterWithCallback(initLogger)
 	}
 
-	func Info(msg string, args ...any) {
-		logger.Info(msg, args...)
+	func main() {
+	  ctx := context.Background()
+	  clic.Init(ctx)
+
+	  slog.Info("Hello, clic!")
 	}
 */
 func RegisterWithCallback[Config any](name string, callback func(ctx context.Context, cfg *Config) error) {
 }
 
-// Init parses configuration from a file, environment or flags. It returns a new context which could be used to retreive values registered with [RegisterAndGet].
-func Init(ctx context.Context) (context.Context, error) {
-	return nil, nil
+// Init parses configuration from a file, environment or flags.
+//
+// If any error happens during calling, `Init()` prints that error on Stderr and calls [os.Exit(125)] to exit.
+func Init(ctx context.Context) {
 }
