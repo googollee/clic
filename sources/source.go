@@ -2,10 +2,12 @@ package sources
 
 import (
 	"context"
-	"reflect"
+
+	"github.com/googollee/clic/structtags"
 )
 
 type Source interface {
-	ConfigWith(t reflect.Type) error
-	ParseTo(ctx context.Context, value any) error
+	Prepare(fields []structtags.Field) error
+	Parse(ctx context.Context) error
+	Error() error
 }

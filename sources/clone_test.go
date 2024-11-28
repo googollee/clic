@@ -51,19 +51,45 @@ func parserString(v reflect.Value, str string) error {
 }
 
 func TestNewFromFields(t *testing.T) {
-	str := "abc"
+	var a1, a2, a3 string
 	tests := []struct {
 		wantDefault string
 		checkString string
 		inputFields []structtags.Field
 	}{
-		{`{"a1":"abc"}`, `{"a1":"123"}`, []structtags.Field{
-			{Name: []string{"a1"}, Parser: parserString, Value: reflect.ValueOf(&str).Elem()},
+		{`{"a1":"layer1"}`, `{"a1":"123"}`, []structtags.Field{
+			{Name: []string{"a1"}, Parser: parserString, Value: reflect.ValueOf(&a1).Elem()},
+		}},
+		{`{"a1":{"a2":"layer2"}}`, `{"a1":{"a2":"123"}}`, []structtags.Field{
+			{Name: []string{"a1", "a2"}, Parser: parserString, Value: reflect.ValueOf(&a2).Elem()},
+		}},
+		{`{"a1":{"a2":{"a3":"layer3"}}}`, `{"a1":{"a2":{"a3":"123"}}}`, []structtags.Field{
+			{Name: []string{"a1", "a2", "a3"}, Parser: parserString, Value: reflect.ValueOf(&a3).Elem()},
+		}},
+
+		{`{"a1":"layer1","a2":{"a3":"layer3"}}`, `{"a1":"abc","a2":{"a3":"123"}}`, []structtags.Field{
+			{Name: []string{"a1"}, Parser: parserString, Value: reflect.ValueOf(&a1).Elem()},
+			{Name: []string{"a2", "a3"}, Parser: parserString, Value: reflect.ValueOf(&a3).Elem()},
+		}},
+
+		{`{"a1":"layer1","inner":{"a2":"layer2","inner":{"a3":"layer3"}}}`, `{"a1":"123","inner":{"a2":"abc","inner":{"a3":"xyz"}}}`, []structtags.Field{
+			{Name: []string{"a1"}, Parser: parserString, Value: reflect.ValueOf(&a1).Elem()},
+			{Name: []string{"inner", "a2"}, Parser: parserString, Value: reflect.ValueOf(&a2).Elem()},
+			{Name: []string{"inner", "inner", "a3"}, Parser: parserString, Value: reflect.ValueOf(&a3).Elem()},
+		}},
+		{`{"inner":{"a2":"layer2","inner":{"a3":"layer3"}},"a1":"layer1"}`, `{"inner":{"a2":"abc","inner":{"a3":"xyz"}},"a1":"123"}`, []structtags.Field{
+			{Name: []string{"inner", "a2"}, Parser: parserString, Value: reflect.ValueOf(&a2).Elem()},
+			{Name: []string{"inner", "inner", "a3"}, Parser: parserString, Value: reflect.ValueOf(&a3).Elem()},
+			{Name: []string{"a1"}, Parser: parserString, Value: reflect.ValueOf(&a1).Elem()},
 		}},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.wantDefault, func(t *testing.T) {
+			a1 = "layer1"
+			a2 = "layer2"
+			a3 = "layer3"
+
 			v := newFromFields(tc.inputFields, 0, `json:"%s"`)
 
 			t.Run("Default", func(t *testing.T) {
