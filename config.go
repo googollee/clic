@@ -85,8 +85,6 @@ func RegisterWithCallback[Config any](name string, callback func(ctx context.Con
 
 // Init parses configuration from a file, environment or flags.
 //
-// If any error happens during calling, "Init()" prints that error on Stderr and calls "[os.Exit(125)]" to exit.
-//
-// [os.Exist(125)]: https://pkg.go.dev/os#Exit
+// If any error happens during calling, "Init()" prints that error on Stderr and calls [os.Exit] to exit with "125" code.
 func Init(ctx context.Context) {
 }
