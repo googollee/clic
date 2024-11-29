@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestFlagSource(t *testing.T) {
+func TestFlag(t *testing.T) {
 	tests := []struct {
 		name                   string
 		options                []FlagOption
@@ -18,18 +18,27 @@ func TestFlagSource(t *testing.T) {
 		wantA1, wantA2, wantA3 string
 	}{
 		{
-			name:     "Default",
+			name:     "FromValue",
 			options:  []FlagOption{},
-			wantHelp: "  -a1 value\n    \ta1\n  -l1.a2 value\n    \ta2\n  -l2.l3.a3 value\n    \ta3\n",
+			wantHelp: "  -a1 value\n    \ta1 (default a1)\n  -l1.a2 value\n    \ta2 (default a2)\n  -l2.l3.a3 value\n    \ta3 (default a3)\n",
 			args:     []string{"-a1", "123", "-l1.a2", "abc", "-l2.l3.a3", "xyz"},
 			wantA1:   "123",
 			wantA2:   "abc",
 			wantA3:   "xyz",
 		},
 		{
+			name:     "FromDefault",
+			options:  []FlagOption{},
+			wantHelp: "  -a1 value\n    \ta1 (default a1)\n  -l1.a2 value\n    \ta2 (default a2)\n  -l2.l3.a3 value\n    \ta3 (default a3)\n",
+			args:     []string{},
+			wantA1:   "a1",
+			wantA2:   "a2",
+			wantA3:   "a3",
+		},
+		{
 			name:     "WithPrefixSplitter",
 			options:  []FlagOption{FlagPrefix("demo"), FlagSplitter("_")},
-			wantHelp: "  -demo_a1 value\n    \ta1\n  -demo_l1_a2 value\n    \ta2\n  -demo_l2_l3_a3 value\n    \ta3\n",
+			wantHelp: "  -demo_a1 value\n    \ta1 (default a1)\n  -demo_l1_a2 value\n    \ta2 (default a2)\n  -demo_l2_l3_a3 value\n    \ta3 (default a3)\n",
 			args:     []string{"-demo_a1", "123", "-demo_l1_a2", "abc", "-demo_l2_l3_a3", "xyz"},
 			wantA1:   "123",
 			wantA2:   "abc",
@@ -41,7 +50,7 @@ func TestFlagSource(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			flagSet := flag.NewFlagSet("", flag.ContinueOnError)
 			src := Flag(tc.options...)
-			a1, a2, a3 = "", "", ""
+			a1, a2, a3 = "a1", "a2", "a3"
 
 			if err := src.Prepare(flagSet, fields); err != nil {
 				t.Fatalf("src.Prepare(fields) returns error: %v", err)
@@ -94,7 +103,7 @@ func TestFlagSource(t *testing.T) {
 	})
 }
 
-func TestFlagSourceError(t *testing.T) {
+func TestFlagError(t *testing.T) {
 	tests := []struct {
 		name    string
 		options []FlagOption

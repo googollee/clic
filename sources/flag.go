@@ -68,7 +68,9 @@ func (s *flagSource) Prepare(fset *flag.FlagSet, fields []structtags.Field) erro
 		if s.prefix != "" {
 			names = append([]string{s.prefix}, field.Name...)
 		}
-		fset.TextVar(&field, strings.Join(names, s.splitter), field, field.Description)
+
+		key := strings.ToLower(strings.Join(names, s.splitter))
+		fset.TextVar(&field, key, field, field.Description)
 	}
 
 	return nil

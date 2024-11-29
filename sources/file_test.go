@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestFlagFile(t *testing.T) {
+func TestFile(t *testing.T) {
 	tests := []struct {
 		name                   string
 		options                []FileOption
@@ -18,13 +18,22 @@ func TestFlagFile(t *testing.T) {
 		wantA1, wantA2, wantA3 string
 	}{
 		{
-			name:     "Default",
+			name:     "FromValue",
 			options:  []FileOption{},
 			wantHelp: "  -config string\n    \tthe path of the config file\n",
 			args:     []string{"-config", "./testdata/valid.json"},
 			wantA1:   "123",
 			wantA2:   "abc",
 			wantA3:   "xyz",
+		},
+		{
+			name:     "FromDefault",
+			options:  []FileOption{},
+			wantHelp: "  -config string\n    \tthe path of the config file\n",
+			args:     []string{"-config", "./testdata/empty.json"},
+			wantA1:   "a1",
+			wantA2:   "a2",
+			wantA3:   "a3",
 		},
 		{
 			name:     "WithFlagFormat",
@@ -41,7 +50,7 @@ func TestFlagFile(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			flagSet := flag.NewFlagSet("", flag.ContinueOnError)
 			src := File(tc.options...)
-			a1, a2, a3 = "", "", ""
+			a1, a2, a3 = "a1", "a2", "a3"
 
 			if err := src.Prepare(flagSet, fields); err != nil {
 				t.Fatalf("src.Prepare(fields) returns error: %v", err)
@@ -98,7 +107,7 @@ func TestFlagFile(t *testing.T) {
 	})
 }
 
-func TestFlagFileError(t *testing.T) {
+func TestFileError(t *testing.T) {
 	tests := []struct {
 		name    string
 		options []FileOption
