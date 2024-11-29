@@ -14,16 +14,8 @@ type Field struct {
 	Value         reflect.Value
 }
 
-func (f Field) String() string {
-	return fmt.Sprintf("%v", f.Value.Interface())
-}
-
-func (f Field) Set(str string) error {
-	return f.Parser(f.Value, str)
-}
-
 func (f Field) MarshalText() ([]byte, error) {
-	return []byte(f.String()), nil
+	return []byte(fmt.Sprintf("%v", f.Value.Interface())), nil
 }
 
 func (f Field) UnmarshalText(buf []byte) error {

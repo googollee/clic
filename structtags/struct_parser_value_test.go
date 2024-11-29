@@ -2,7 +2,6 @@ package structtags
 
 import (
 	"encoding"
-	"flag"
 	"reflect"
 	"testing"
 	"time"
@@ -65,28 +64,6 @@ func TestParseStructValue(t *testing.T) {
 
 			if got, want := string(gotBuf), fieldString; got != want {
 				t.Errorf("Field %v: MarshalText() = %q, want: %q", fields[i].Name, got, want)
-			}
-		}
-
-		if diff := cmp.Diff(value, want); diff != "" {
-			t.Errorf("Diff: (-got, +want)\n%s", diff)
-		}
-	})
-
-	t.Run("ValueSet", func(t *testing.T) {
-		if got, want := len(fields), len(fieldStrings); got != want {
-			t.Fatalf("len(fields) = %d should equal to len(fieldStrings) = %d, which is not", got, want)
-		}
-
-		for i, fieldString := range fieldStrings {
-			var _ flag.Value = fields[i]
-
-			if err := fields[i].Set(fieldString); err != nil {
-				t.Fatalf("Field %v: Parse(%q) returns an error: %v, want no error", fields[i].Name, fieldString, err)
-			}
-
-			if got, want := fields[i].String(), fieldString; got != want {
-				t.Errorf("Field %v: String() = %q, want: %q", fields[i].Name, got, want)
 			}
 		}
 

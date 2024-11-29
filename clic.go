@@ -76,22 +76,11 @@ Example:
 
 	type logConfig struct {
 		// `clic` tag format: <name>,<default value>,<description>
-		Level string `clic:"level,info,the minimum level of logging: <debug|info|warn|error>"`
+		Level slog.Level `clic:"level,info,the minimum level of logging: <debug|info|warn|error>"`
 	}
 
 	func initLogger(ctx context.Context, cfg *logConfig) error {
-		switch cfg.Level {
-		case "debug":
-			slog.SetLogLoggerLevel(slog.LevelDebug)
-		case "info":
-			slog.SetLogLoggerLevel(slog.LevelInfo)
-		case "warn":
-			slog.SetLogLoggerLevel(slog.LevelWarn)
-		case "error":
-			slog.SetLogLoggerLevel(slog.LevelError)
-		default:
-			return fmt.Errorf("invalid log level: %q", cfg.Level)
-		}
+		slog.SetLogLoggerLevel(cfg.Level)
 
 		return nil
 	}
