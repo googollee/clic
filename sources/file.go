@@ -28,19 +28,19 @@ func FileFormat(codec FileCodec) FileOption {
 	}
 }
 
-func FileFlagSet(set *flag.FlagSet) FileOption {
+func FilePathFlag(name, defaultPath string) FileOption {
 	return func(s *fileSource) error {
-		if set == nil {
-			return fmt.Errorf("invalid flag set: %v", set)
+		if name == "" {
+			return fmt.Errorf("invalid flag name of the config file path: %q", name)
 		}
-		s.flagSet = set
+		s.filepathFlag = name
+		s.filepath = defaultPath
 		return nil
 	}
 }
 
 type fileSource struct {
 	codec        FileCodec
-	flagSet      *flag.FlagSet
 	filepathFlag string
 	filepath     string
 	err          error
@@ -51,10 +51,8 @@ type fileSource struct {
 func File(options ...FileOption) Source {
 	ret := fileSource{
 		codec:        JSON{},
-		flagSet:      flag.CommandLine,
 		filepathFlag: "config",
 	}
-	ret.filepath = "./config." + ret.codec.ExtName()
 
 	for _, option := range options {
 		if err := option(&ret); err != nil {
@@ -69,13 +67,13 @@ func (s *fileSource) Error() error {
 	return s.err
 }
 
-func (s *fileSource) Prepare(fields []structtags.Field) error {
+func (s *fileSource) Prepare(fset *flag.FlagSet, fields []structtags.Field) error {
 	if s.err != nil {
 		return s.err
 	}
 
 	s.value = newFromFields(fields, 0, s.codec.TagName()+":\"%s\"")
-	s.flagSet.StringVar(&s.filepath, s.filepathFlag, s.filepath, "the path of the config file")
+	fset.StringVar(&s.filepath, s.filepathFlag, s.filepath, "the path of the config file")
 
 	return nil
 }

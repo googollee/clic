@@ -18,15 +18,21 @@ func TestFindEndFieldHaveSameIndex(t *testing.T) {
 		{[][]string{}, 0, 0},
 		{[][]string{{}}, 0, 0},
 
-		{[][]string{{"a1"}, {"a2"}, {"a3"}}, 0, 3},
+		{[][]string{{"a1"}, {"a2"}, {"a3"}}, 0, 1},
 		{[][]string{{"a1"}, {"a2"}, {"a3"}}, 1, 0},
 
-		{[][]string{{"a1", "b1"}, {"a1", "b2"}, {"a2"}}, 0, 3},
-		{[][]string{{"a1", "b1"}, {"a1", "b2"}, {"a2"}}, 1, 2},
-		{[][]string{{"a1", "b1"}, {"a1", "b2"}, {"a2", "b3"}}, 1, 3},
-		{[][]string{{"a1", "b1"}, {"a1", "b2", "c1"}, {"a2", "b3"}}, 1, 3},
+		{[][]string{{"a1", "b1"}, {"a1", "b2"}, {"a2"}}, 0, 2},
+		{[][]string{{"a1", "b1"}, {"a1", "b2"}, {"a2"}}, 1, 1},
+
+		{[][]string{{"a1", "b1"}, {"a1", "b2"}, {"a2", "b3"}}, 1, 1},
+		{[][]string{{"a1", "b1"}, {"a1", "b1", "c1"}, {"a2", "b2"}}, 1, 2},
 
 		{[][]string{{"a1", "b1"}, {"a2"}, {"a3", "b3"}}, 1, 1},
+
+		{[][]string{{"a1", "b1"}, {"a2", "b2"}, {"a3", "b3"}}, 1, 1},
+
+		{[][]string{{"a1"}, {"l1", "a2"}, {"l1", "l2", "a3"}}, 0, 1},
+		{[][]string{{"l1", "a2"}, {"l1", "l2", "a3"}}, 0, 2},
 	}
 
 	for _, tc := range tests {
@@ -60,27 +66,32 @@ func TestNewFromFields(t *testing.T) {
 		{`{"a1":"layer1"}`, `{"a1":"123"}`, []structtags.Field{
 			{Name: []string{"a1"}, Parser: parserString, Value: reflect.ValueOf(&a1).Elem()},
 		}},
-		{`{"a1":{"a2":"layer2"}}`, `{"a1":{"a2":"123"}}`, []structtags.Field{
-			{Name: []string{"a1", "a2"}, Parser: parserString, Value: reflect.ValueOf(&a2).Elem()},
+		{`{"l1":{"a2":"layer2"}}`, `{"l1":{"a2":"123"}}`, []structtags.Field{
+			{Name: []string{"l1", "a2"}, Parser: parserString, Value: reflect.ValueOf(&a2).Elem()},
 		}},
-		{`{"a1":{"a2":{"a3":"layer3"}}}`, `{"a1":{"a2":{"a3":"123"}}}`, []structtags.Field{
-			{Name: []string{"a1", "a2", "a3"}, Parser: parserString, Value: reflect.ValueOf(&a3).Elem()},
-		}},
-
-		{`{"a1":"layer1","a2":{"a3":"layer3"}}`, `{"a1":"abc","a2":{"a3":"123"}}`, []structtags.Field{
-			{Name: []string{"a1"}, Parser: parserString, Value: reflect.ValueOf(&a1).Elem()},
-			{Name: []string{"a2", "a3"}, Parser: parserString, Value: reflect.ValueOf(&a3).Elem()},
+		{`{"l1":{"l2":{"a3":"layer3"}}}`, `{"l1":{"l2":{"a3":"123"}}}`, []structtags.Field{
+			{Name: []string{"l1", "l2", "a3"}, Parser: parserString, Value: reflect.ValueOf(&a3).Elem()},
 		}},
 
-		{`{"a1":"layer1","inner":{"a2":"layer2","inner":{"a3":"layer3"}}}`, `{"a1":"123","inner":{"a2":"abc","inner":{"a3":"xyz"}}}`, []structtags.Field{
+		{`{"a1":"layer1","l1":{"a2":"layer2"}}`, `{"a1":"abc","l1":{"a2":"123"}}`, []structtags.Field{
 			{Name: []string{"a1"}, Parser: parserString, Value: reflect.ValueOf(&a1).Elem()},
-			{Name: []string{"inner", "a2"}, Parser: parserString, Value: reflect.ValueOf(&a2).Elem()},
-			{Name: []string{"inner", "inner", "a3"}, Parser: parserString, Value: reflect.ValueOf(&a3).Elem()},
+			{Name: []string{"l1", "a2"}, Parser: parserString, Value: reflect.ValueOf(&a2).Elem()},
 		}},
-		{`{"inner":{"a2":"layer2","inner":{"a3":"layer3"}},"a1":"layer1"}`, `{"inner":{"a2":"abc","inner":{"a3":"xyz"}},"a1":"123"}`, []structtags.Field{
-			{Name: []string{"inner", "a2"}, Parser: parserString, Value: reflect.ValueOf(&a2).Elem()},
-			{Name: []string{"inner", "inner", "a3"}, Parser: parserString, Value: reflect.ValueOf(&a3).Elem()},
+
+		{`{"a1":"layer1","l1":{"a2":"layer2","l2":{"a3":"layer3"}}}`, `{"a1":"123","l1":{"a2":"abc","l2":{"a3":"xyz"}}}`, []structtags.Field{
 			{Name: []string{"a1"}, Parser: parserString, Value: reflect.ValueOf(&a1).Elem()},
+			{Name: []string{"l1", "a2"}, Parser: parserString, Value: reflect.ValueOf(&a2).Elem()},
+			{Name: []string{"l1", "l2", "a3"}, Parser: parserString, Value: reflect.ValueOf(&a3).Elem()},
+		}},
+		{`{"l1":{"a2":"layer2","l2":{"a3":"layer3"}},"a1":"layer1"}`, `{"l1":{"a2":"abc","l2":{"a3":"xyz"}},"a1":"123"}`, []structtags.Field{
+			{Name: []string{"l1", "a2"}, Parser: parserString, Value: reflect.ValueOf(&a2).Elem()},
+			{Name: []string{"l1", "l2", "a3"}, Parser: parserString, Value: reflect.ValueOf(&a3).Elem()},
+			{Name: []string{"a1"}, Parser: parserString, Value: reflect.ValueOf(&a1).Elem()},
+		}},
+		{`{"a1":"layer1","l1":{"a2":"layer2"},"l2":{"l3":{"a3":"layer3"}}}`, `{"a1":"123","l1":{"a2":"abc"},"l2":{"l3":{"a3":"xyz"}}}`, []structtags.Field{
+			{Name: []string{"a1"}, Parser: parserString, Value: reflect.ValueOf(&a1).Elem()},
+			{Name: []string{"l1", "a2"}, Parser: parserString, Value: reflect.ValueOf(&a2).Elem()},
+			{Name: []string{"l2", "l3", "a3"}, Parser: parserString, Value: reflect.ValueOf(&a3).Elem()},
 		}},
 	}
 

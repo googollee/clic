@@ -9,28 +9,28 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestFlagSource(t *testing.T) {
+func TestFlagFile(t *testing.T) {
 	tests := []struct {
 		name                   string
-		options                []FlagOption
+		options                []FileOption
 		wantHelp               string
 		args                   []string
 		wantA1, wantA2, wantA3 string
 	}{
 		{
 			name:     "Default",
-			options:  []FlagOption{},
-			wantHelp: "  -a1 value\n    \ta1\n  -l1.a2 value\n    \ta2\n  -l2.l3.a3 value\n    \ta3\n",
-			args:     []string{"-a1", "123", "-l1.a2", "abc", "-l2.l3.a3", "xyz"},
+			options:  []FileOption{},
+			wantHelp: "  -config string\n    \tthe path of the config file\n",
+			args:     []string{"-config", "./testdata/valid.json"},
 			wantA1:   "123",
 			wantA2:   "abc",
 			wantA3:   "xyz",
 		},
 		{
-			name:     "WithPrefixSplitter",
-			options:  []FlagOption{FlagPrefix("demo"), FlagSplitter("_")},
-			wantHelp: "  -demo_a1 value\n    \ta1\n  -demo_l1_a2 value\n    \ta2\n  -demo_l2_l3_a3 value\n    \ta3\n",
-			args:     []string{"-demo_a1", "123", "-demo_l1_a2", "abc", "-demo_l2_l3_a3", "xyz"},
+			name:     "WithFlagFormat",
+			options:  []FileOption{FileFormat(JSON{}), FilePathFlag("c", "./testdata/valid.json")},
+			wantHelp: "  -c string\n    \tthe path of the config file (default \"./testdata/valid.json\")\n",
+			args:     []string{},
 			wantA1:   "123",
 			wantA2:   "abc",
 			wantA3:   "xyz",
@@ -40,7 +40,7 @@ func TestFlagSource(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			flagSet := flag.NewFlagSet("", flag.ContinueOnError)
-			src := Flag(tc.options...)
+			src := File(tc.options...)
 			a1, a2, a3 = "", "", ""
 
 			if err := src.Prepare(flagSet, fields); err != nil {
@@ -77,7 +77,7 @@ func TestFlagSource(t *testing.T) {
 
 	t.Run("InvalidValue", func(t *testing.T) {
 		flagSet := flag.NewFlagSet("", flag.ContinueOnError)
-		src := Flag()
+		src := File()
 
 		var output bytes.Buffer
 		flagSet.SetOutput(&output)
@@ -87,24 +87,29 @@ func TestFlagSource(t *testing.T) {
 			t.Fatalf("src.Prepare(fields) returns error: %v", err)
 		}
 
-		args := []string{"-flag.a", "123"}
-		if err := flagSet.Parse(args); err == nil {
-			t.Fatalf("flagSet.Parse() error: %v, want an error", err)
+		args := []string{"-config", "testdata/not_exist.json"}
+		if err := flagSet.Parse(args); err != nil {
+			t.Fatalf("flagSet.Parse() error: %v", err)
+		}
+
+		if err := src.Parse(context.Background()); err == nil {
+			t.Fatalf("src.Parse() error: %v, want an error", err)
 		}
 	})
 }
 
-func TestFlagSourceError(t *testing.T) {
+func TestFlagFileError(t *testing.T) {
 	tests := []struct {
 		name    string
-		options []FlagOption
+		options []FileOption
 	}{
-		{"EmptySplitter", []FlagOption{FlagSplitter("")}},
+		{"EmptyCodec", []FileOption{FileFormat(nil)}},
+		{"EmptyPathFlag", []FileOption{FilePathFlag("", "")}},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			src := Flag(tc.options...)
+			src := File(tc.options...)
 			err := src.Error()
 			if err == nil {
 				t.Errorf("src().Error() want an error, which is not")

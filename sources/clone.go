@@ -16,22 +16,23 @@ func newFromFields(fields []structtags.Field, index int, tagFmt string) reflect.
 	var wantValues []NamedValue
 
 	for len(fields) > 0 {
-		if index != len(fields[0].Name)-1 {
-			end := findEndFieldHaveSameIndex(fields, index+1)
+		end := findEndFieldHaveSameIndex(fields, index)
+
+		if end == 1 && index == len(fields[0].Name)-1 {
 			wantValues = append(wantValues, NamedValue{
 				name:  fields[0].Name[index],
-				value: newFromFields(fields[:end], index+1, tagFmt).Elem(),
+				value: reflect.ValueOf(fields[0]),
 			})
-
-			fields = fields[end:]
+			fields = fields[1:]
 			continue
 		}
 
 		wantValues = append(wantValues, NamedValue{
 			name:  fields[0].Name[index],
-			value: reflect.ValueOf(fields[0]),
+			value: newFromFields(fields[:end], index+1, tagFmt).Elem(),
 		})
-		fields = fields[1:]
+
+		fields = fields[end:]
 	}
 
 	wantFields := make([]reflect.StructField, 0, len(wantValues))
@@ -54,9 +55,15 @@ func newFromFields(fields []structtags.Field, index int, tagFmt string) reflect.
 }
 
 func findEndFieldHaveSameIndex(fields []structtags.Field, index int) (end int) {
-	for end = 0; end < len(fields); end++ {
-		if index >= len(fields[end].Name) {
-			break
+	if len(fields) == 0 || index >= len(fields[0].Name) {
+		return
+	}
+
+	fieldName := fields[0].Name[index]
+
+	for end = 1; end < len(fields); end++ {
+		if index >= len(fields[end].Name) || fields[end].Name[index] != fieldName {
+			return
 		}
 	}
 
