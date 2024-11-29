@@ -12,10 +12,15 @@ var getDB = clic.RegisterAndGet[database.Config]("database")
 
 /*
 Try:
+
  - go run . -h
+    Show the usage
  - CLIC_DATABASE_ADDRESS=urienv_addr go run .
+    Provide parameters through env variables.
  - CLIC_DATABASE_ADDRESS=urienv_addr go run . -config ./config.json
+    Priority order: config file > env variables
  - go run . -config ./config.json -database.address "uri:new_addr"
+    Priority order: flag arguments > config file
 */
 
 func main() {
