@@ -83,5 +83,9 @@ func (s *fileSource) Parse(ctx context.Context) error {
 		return s.err
 	}
 
+	if s.filepath == "" {
+		return nil
+	}
+
 	return s.codec.Decode(s.filepath, s.value.Interface())
 }

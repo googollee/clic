@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/googollee/clic/structtags"
@@ -35,6 +36,7 @@ type flagSource struct {
 	prefix   string
 	splitter string
 
+	set *flag.FlagSet
 	err error
 }
 
@@ -73,12 +75,18 @@ func (s *flagSource) Prepare(fset *flag.FlagSet, fields []structtags.Field) erro
 		fset.TextVar(&field, key, field, field.Description)
 	}
 
+	s.set = fset
+
 	return nil
 }
 
 func (s *flagSource) Parse(ctx context.Context) error {
 	if s.err != nil {
 		return s.err
+	}
+
+	if err := s.set.Parse(os.Args[1:]); err != nil {
+		return err
 	}
 
 	return nil

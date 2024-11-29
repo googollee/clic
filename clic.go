@@ -116,6 +116,7 @@ func Init(ctx context.Context) {
 	fset := flag.CommandLine
 	var showHelp bool
 	fset.BoolVar(&showHelp, "help", false, "show the usage")
+	fset.BoolVar(&showHelp, "h", false, "show the usage")
 
 	var fields []structtags.Field
 	for name, handler := range handlers {
@@ -133,8 +134,8 @@ func Init(ctx context.Context) {
 		}
 	}
 
-	if err := fset.Parse(os.Args); err != nil {
-		panic("parse error: " + err.Error())
+	if err := fset.Parse(os.Args[1:]); err != nil {
+		panic("parse flags error: " + err.Error())
 	}
 
 	if showHelp {
@@ -146,7 +147,13 @@ func Init(ctx context.Context) {
 	for i := len(srcs) - 1; i >= 0; i-- {
 		src := srcs[i]
 		if err := src.Parse(ctx); err != nil {
-			panic("parse error: " + err.Error())
+			panic("parse config error: " + err.Error())
+		}
+	}
+
+	for name, handler := range handlers {
+		if err := handler.Callback(ctx); err != nil {
+			panic("init config " + name + " error " + err.Error())
 		}
 	}
 }

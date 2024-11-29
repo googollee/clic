@@ -1,0 +1,8 @@
+{
+  "database": {
+    "address": "uri:database_address"
+  },
+  "log": {
+    "level": "debug"
+  }
+}

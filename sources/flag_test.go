@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"flag"
+	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -64,9 +65,11 @@ func TestFlag(t *testing.T) {
 				t.Errorf("output diff: (-got, +want)\n%s", diff)
 			}
 
-			if err := flagSet.Parse(tc.args); err != nil {
-				t.Fatalf("flagSet.Parse() error: %v", err)
-			}
+			orgArgs := os.Args
+			os.Args = append([]string{"test"}, tc.args...)
+			defer func() {
+				os.Args = orgArgs
+			}()
 
 			if err := src.Parse(context.Background()); err != nil {
 				t.Fatalf("src.Parse() should return no error, which is not: %v", err)
@@ -96,9 +99,14 @@ func TestFlag(t *testing.T) {
 			t.Fatalf("src.Prepare(fields) returns error: %v", err)
 		}
 
-		args := []string{"-flag.a", "123"}
-		if err := flagSet.Parse(args); err == nil {
-			t.Fatalf("flagSet.Parse() error: %v, want an error", err)
+		orgArgs := os.Args
+		os.Args = []string{"test", "-flag.a", "123"}
+		defer func() {
+			os.Args = orgArgs
+		}()
+
+		if err := src.Parse(context.Background()); err == nil {
+			t.Fatalf("src.Parse() = %v, want an error", err)
 		}
 	})
 }

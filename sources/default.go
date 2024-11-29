@@ -1,7 +1,7 @@
 package sources
 
 var Default = []Source{
-	File(FilePathFlag("config", ""), FileFormat(JSON{})),
 	Flag(FlagPrefix(""), FlagSplitter(".")),
+	File(FilePathFlag("config", ""), FileFormat(JSON{})),
 	Env(EnvPrefix("CLIC"), EnvSplitter("_")),
 }
