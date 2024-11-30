@@ -75,6 +75,7 @@ Example:
 	}
 
 	type logConfig struct {
+		// [slog.Level] implements [encoding.TextMarshaler] and [encoding.TextUnmarshaler] to parse values from a string.
 		// `clic` tag format: <name>,<default value>,<description>
 		Level slog.Level `clic:"level,info,the minimum level of logging: <debug|info|warn|error>"`
 	}
