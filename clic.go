@@ -14,7 +14,6 @@ import (
 	"os"
 
 	"github.com/googollee/clic/sources"
-	"github.com/googollee/clic/structtags"
 )
 
 /*
@@ -38,13 +37,12 @@ Example:
 	}
 */
 func RegisterAndGet[Config any](name string) (getter func() *Config) {
-	if _, exist := handlers[name]; exist {
-		panic("already registered a config with name " + name)
-	}
+	adapter := config[Config]{}
+	getter = adapter.Get
 
-	handler := config[Config]{}
-	handlers[name] = &handler
-	getter = handler.Get
+	if err := configs.Register(name, &adapter); err != nil {
+		configs.ExitWithError(err)
+	}
 
 	return
 }
@@ -87,14 +85,12 @@ Example:
 	}
 */
 func RegisterWithCallback[Config any](name string, callback func(ctx context.Context, cfg *Config) error) {
-	if _, exist := handlers[name]; exist {
-		panic("already registered a config with name " + name)
-	}
-
-	handler := config[Config]{
+	adapter := config[Config]{
 		callback: callback,
 	}
-	handlers[name] = &handler
+	if err := configs.Register(name, &adapter); err != nil {
+		configs.ExitWithError(err)
+	}
 }
 
 // Init parses configuration from a file, environment or flags.
@@ -108,42 +104,17 @@ func Init(ctx context.Context) {
 	fset.BoolVar(&showHelp, "help", false, "show the usage")
 	fset.BoolVar(&showHelp, "h", false, "show the usage")
 
-	var fields []structtags.Field
-	for name, handler := range handlers {
-		f, err := structtags.ParseStruct(handler.Value(), []string{name})
-		if err != nil {
-			panic("parse config of " + name + " error: " + err.Error())
-		}
-		fields = append(fields, f...)
-	}
-
-	for i := 0; i < len(srcs); i++ {
-		src := srcs[i]
-		if err := src.Prepare(fset, fields); err != nil {
-			panic("prepare error: " + err.Error())
-		}
-	}
-
-	if err := fset.Parse(os.Args[1:]); err != nil {
-		panic("parse flags error: " + err.Error())
+	if err := configs.Prepare(srcs, fset); err != nil {
+		configs.ExitWithError(err)
 	}
 
 	if showHelp {
 		fset.PrintDefaults()
-		os.Exit(125)
+		os.Exit(0)
 		return
 	}
 
-	for i := len(srcs) - 1; i >= 0; i-- {
-		src := srcs[i]
-		if err := src.Parse(ctx); err != nil {
-			panic("parse config error: " + err.Error())
-		}
-	}
-
-	for name, handler := range handlers {
-		if err := handler.Callback(ctx); err != nil {
-			panic("init config " + name + " error " + err.Error())
-		}
+	if err := configs.Parse(ctx, srcs); err != nil {
+		configs.ExitWithError(err)
 	}
 }
