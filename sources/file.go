@@ -2,7 +2,6 @@ package sources
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"reflect"
 
@@ -67,7 +66,7 @@ func (s *fileSource) Error() error {
 	return s.err
 }
 
-func (s *fileSource) Prepare(fset *flag.FlagSet, fields []structtags.Field) error {
+func (s *fileSource) Prepare(fset FlagSet, fields []structtags.Field) error {
 	if s.err != nil {
 		return s.err
 	}

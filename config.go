@@ -2,7 +2,6 @@ package clic
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"reflect"
@@ -40,12 +39,14 @@ type configAdapter interface {
 var configs = newCLIConfigs()
 
 type cliConfigs struct {
-	configs map[string]configAdapter
+	configs  map[string]configAdapter
+	withHelp bool
 }
 
 func newCLIConfigs() cliConfigs {
 	return cliConfigs{
-		configs: make(map[string]configAdapter),
+		configs:  make(map[string]configAdapter),
+		withHelp: true,
 	}
 }
 
@@ -63,7 +64,7 @@ func (c *cliConfigs) Register(name string, adapter configAdapter) error {
 	return nil
 }
 
-func (c *cliConfigs) Prepare(srcs []sources.Source, fset *flag.FlagSet) error {
+func (c *cliConfigs) Prepare(srcs []sources.Source, fset sources.FlagSet, args []string) error {
 	var fields []structtags.Field
 	for name, handler := range c.configs {
 		f, err := structtags.ParseStruct(handler.Value(), []string{name})
@@ -80,8 +81,21 @@ func (c *cliConfigs) Prepare(srcs []sources.Source, fset *flag.FlagSet) error {
 		}
 	}
 
-	if err := fset.Parse(os.Args[1:]); err != nil {
+	var help bool
+
+	if c.withHelp {
+		fset.BoolVar(&help, "help", false, "show the usage")
+		fset.BoolVar(&help, "h", false, "show the usage")
+	}
+
+	if err := fset.Parse(args); err != nil {
 		return fmt.Errorf("parse flags error: %w", err)
+	}
+
+	if help {
+		fset.PrintDefaults()
+		os.Exit(0)
+		return nil
 	}
 
 	return nil

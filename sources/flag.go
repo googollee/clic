@@ -3,7 +3,6 @@ package sources
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -36,7 +35,7 @@ type flagSource struct {
 	prefix   string
 	splitter string
 
-	set *flag.FlagSet
+	set FlagSet
 	err error
 }
 
@@ -59,7 +58,7 @@ func (s *flagSource) Error() error {
 	return s.err
 }
 
-func (s *flagSource) Prepare(fset *flag.FlagSet, fields []structtags.Field) error {
+func (s *flagSource) Prepare(fset FlagSet, fields []structtags.Field) error {
 	if s.err != nil {
 		return s.err
 	}

@@ -2,7 +2,6 @@ package sources
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -55,7 +54,7 @@ func (s *envSource) Error() error {
 	return s.err
 }
 
-func (s *envSource) Prepare(fset *flag.FlagSet, fields []structtags.Field) error {
+func (s *envSource) Prepare(fset FlagSet, fields []structtags.Field) error {
 	if s.err != nil {
 		return s.err
 	}

@@ -100,18 +100,9 @@ func Init(ctx context.Context) {
 	srcs := sources.Default
 
 	fset := flag.CommandLine
-	var showHelp bool
-	fset.BoolVar(&showHelp, "help", false, "show the usage")
-	fset.BoolVar(&showHelp, "h", false, "show the usage")
 
-	if err := configs.Prepare(srcs, fset); err != nil {
+	if err := configs.Prepare(srcs, fset, os.Args[1:]); err != nil {
 		configs.ExitWithError(err)
-	}
-
-	if showHelp {
-		fset.PrintDefaults()
-		os.Exit(0)
-		return
 	}
 
 	if err := configs.Parse(ctx, srcs); err != nil {
