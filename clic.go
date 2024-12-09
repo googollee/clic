@@ -11,6 +11,7 @@ package clic
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/googollee/clic/sources"
@@ -101,8 +102,24 @@ func Init(ctx context.Context) {
 
 	fset := flag.CommandLine
 
-	if err := configs.Prepare(srcs, fset, os.Args[1:]); err != nil {
+	if err := configs.Prepare(srcs, fset); err != nil {
 		configs.ExitWithError(err)
+	}
+
+	var help bool
+
+	if configs.WithHelp() {
+		fset.BoolVar(&help, "help", false, "show the usage")
+		fset.BoolVar(&help, "h", false, "show the usage")
+	}
+
+	if err := fset.Parse(os.Args[1:]); err != nil {
+		configs.ExitWithError(fmt.Errorf("parse flags error: %w", err))
+	}
+
+	if help {
+		fset.PrintDefaults()
+		os.Exit(0)
 	}
 
 	if err := configs.Parse(ctx, srcs); err != nil {
