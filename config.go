@@ -78,7 +78,7 @@ func (c *cliConfigs) Prepare(srcs []sources.Source, fset sources.FlagSet) error 
 		fields = append(fields, f...)
 	}
 
-	for i := 0; i < len(srcs); i++ {
+	for i := range len(srcs) {
 		src := srcs[i]
 		if err := src.Prepare(fset, fields); err != nil {
 			return fmt.Errorf("prepare source %T error: %w", src, err)
