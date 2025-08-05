@@ -9,7 +9,7 @@ import (
 	"github.com/googollee/clic"
 )
 
-func ExampleInit_valuePriorities() {
+func ExampleInit_sourcePriorities() {
 	// prepare env
 	for _, key := range []string{"CLIC_DEMO_VALUE_FLAG", "CLIC_DEMO_VALUE_ENV", "CLIC_DEMO_VALUE_FILE"} {
 		if err := os.Setenv(key, "value_from_env"); err != nil {
