@@ -10,9 +10,3 @@ updates:
   directory: /.github/workflows
   schedule:
     interval: weekly
-
-# Maintain dependencies for Dockerfile
-- package-ecosystem: docker
-  directory: /
-  schedule:
-    interval: weekly
