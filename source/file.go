@@ -27,19 +27,17 @@ func FileFormat(codec FileCodec) FileOption {
 	}
 }
 
-func FilePathFlag(name, defaultPath string) FileOption {
+func FilePathFlag(name string) FileOption {
 	return func(s *fileSource) error {
 		if name == "" {
 			return fmt.Errorf("invalid flag name of the config file path: %q", name)
 		}
 		s.filepathFlag = name
-		s.filepath = defaultPath
 		return nil
 	}
 }
 
 type fileSource struct {
-	fset         FlagSet
 	codec        FileCodec
 	filepathFlag string
 	filepath     string
@@ -48,9 +46,8 @@ type fileSource struct {
 	value reflect.Value
 }
 
-func File(fset FlagSet, options ...FileOption) Source {
+func File(options ...FileOption) Source {
 	ret := fileSource{
-		fset:         fset,
 		codec:        JSON{},
 		filepathFlag: "config",
 	}
@@ -68,13 +65,13 @@ func (s *fileSource) Error() error {
 	return s.err
 }
 
-func (s *fileSource) Register(fields []structtags.Field) error {
+func (s *fileSource) Register(fset FlagSet, fields []structtags.Field) error {
 	if s.err != nil {
 		return s.err
 	}
 
 	s.value = newFromFields(fields, 0, s.codec.TagName()+":\"%s\"")
-	s.fset.StringVar(&s.filepath, s.filepathFlag, s.filepath, "the path of the config file")
+	fset.StringVar(&s.filepath, s.filepathFlag, "", "the path of the config file")
 
 	return nil
 }
@@ -82,13 +79,6 @@ func (s *fileSource) Register(fields []structtags.Field) error {
 func (s *fileSource) Parse(ctx context.Context, args []string) error {
 	if s.err != nil {
 		return s.err
-	}
-
-	if !s.fset.Parsed() {
-		if err := s.fset.Parse(args); err != nil {
-			fmt.Println("error:", err)
-			return err
-		}
 	}
 
 	if s.filepath == "" {

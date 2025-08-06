@@ -23,26 +23,16 @@ func FlagSplitter(splitter string) FlagOption {
 	}
 }
 
-func FlagPrefix(prefix string) FlagOption {
-	return func(s *flagSource) error {
-		s.prefix = prefix
-		return nil
-	}
-}
-
 type flagSource struct {
-	prefix   string
 	splitter string
-	fset     FlagSet
 
-	err error
+	fset FlagSet
+	err  error
 }
 
-func Flag(fset FlagSet, opt ...FlagOption) Source {
+func Flag(opt ...FlagOption) Source {
 	ret := flagSource{
-		prefix:   "",
 		splitter: ".",
-		fset:     fset,
 	}
 
 	for _, opt := range opt {
@@ -58,19 +48,18 @@ func (s *flagSource) Error() error {
 	return s.err
 }
 
-func (s *flagSource) Register(fields []structtags.Field) error {
+func (s *flagSource) Register(fset FlagSet, fields []structtags.Field) error {
 	if s.err != nil {
 		return s.err
 	}
 
+	s.fset = fset
+
 	for _, field := range fields {
 		names := field.Name
-		if s.prefix != "" {
-			names = append([]string{s.prefix}, field.Name...)
-		}
 
 		key := strings.ToLower(strings.Join(names, s.splitter))
-		s.fset.TextVar(&field, key, field, field.Description)
+		fset.TextVar(&field, key, field, field.Description)
 	}
 
 	return nil
@@ -81,10 +70,8 @@ func (s *flagSource) Parse(ctx context.Context, args []string) error {
 		return s.err
 	}
 
-	if !s.fset.Parsed() {
-		if err := s.fset.Parse(args); err != nil {
-			return err
-		}
+	if err := s.fset.Parse(args); err != nil {
+		return err
 	}
 
 	return nil

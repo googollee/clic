@@ -2,7 +2,6 @@ package source
 
 import (
 	"bytes"
-	"context"
 	"flag"
 	"testing"
 
@@ -36,10 +35,10 @@ func TestFlag(t *testing.T) {
 			wantA3:   "a3",
 		},
 		{
-			name:     "WithPrefixSplitter",
-			options:  []FlagOption{FlagPrefix("demo"), FlagSplitter("_")},
-			wantHelp: "  -demo_a1 value\n    \ta1 (default a1)\n  -demo_l1_a2 value\n    \ta2 (default a2)\n  -demo_l2_l3_a3 value\n    \ta3 (default a3)\n",
-			args:     []string{"-demo_a1", "123", "-demo_l1_a2", "abc", "-demo_l2_l3_a3", "xyz"},
+			name:     "WithSplitter",
+			options:  []FlagOption{FlagSplitter("_")},
+			wantHelp: "  -a1 value\n    \ta1 (default a1)\n  -l1_a2 value\n    \ta2 (default a2)\n  -l2_l3_a3 value\n    \ta3 (default a3)\n",
+			args:     []string{"-a1", "123", "-l1_a2", "abc", "-l2_l3_a3", "xyz"},
 			wantA1:   "123",
 			wantA2:   "abc",
 			wantA3:   "xyz",
@@ -50,10 +49,10 @@ func TestFlag(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fset := flag.NewFlagSet("", flag.ContinueOnError)
 
-			src := Flag(fset, tc.options...)
+			src := Flag(tc.options...)
 			a1, a2, a3 = "a1", "a2", "a3"
 
-			if err := src.Register(fields); err != nil {
+			if err := src.Register(fset, fields); err != nil {
 				t.Fatalf("src.Prepare(fields) returns error: %v", err)
 			}
 
@@ -65,7 +64,11 @@ func TestFlag(t *testing.T) {
 				t.Errorf("output diff: (-got, +want)\n%s", diff)
 			}
 
-			if err := src.Parse(context.Background(), tc.args); err != nil {
+			if err := fset.Parse(tc.args); err != nil {
+				t.Fatalf("fset.Parse() error: %v", err)
+			}
+
+			if err := src.Parse(t.Context(), tc.args); err != nil {
 				t.Fatalf("src.Parse() should return no error, which is not: %v", err)
 			}
 
@@ -83,20 +86,23 @@ func TestFlag(t *testing.T) {
 
 	t.Run("InvalidValue", func(t *testing.T) {
 		fset := flag.NewFlagSet("", flag.ContinueOnError)
-		src := Flag(fset)
+		src := Flag()
 
 		var output bytes.Buffer
 		fset.SetOutput(&output)
 		t.Logf("output:\n%s", output.String())
 
-		if err := src.Register(fields); err != nil {
+		if err := src.Register(fset, fields); err != nil {
 			t.Fatalf("src.Prepare(fields) returns error: %v", err)
 		}
 
 		args := []string{"-flag.a", "123"}
+		if err := fset.Parse(args); err == nil {
+			t.Fatalf("fset.Parse() is nil, want an error")
+		}
 
-		if err := src.Parse(context.Background(), args); err == nil {
-			t.Fatalf("src.Parse() = %v, want an error", err)
+		if err := src.Parse(t.Context(), args); err == nil {
+			t.Fatalf("src.Parse() is nil, want an error")
 		}
 	})
 }
@@ -112,17 +118,22 @@ func TestFlagError(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			fset := flag.NewFlagSet("", flag.ContinueOnError)
-			src := Flag(fset, tc.options...)
+			src := Flag(tc.options...)
 			err := src.Error()
 			if err == nil {
 				t.Errorf("src().Error() want an error, which is not")
 			}
 
-			if errRegister := src.Register(fields); err != errRegister {
+			if errRegister := src.Register(fset, fields); err != errRegister {
 				t.Errorf("src().Prepare() = %v, src().Error() = %v, they should be same", errRegister, err)
 			}
 
-			if errParse := src.Parse(context.Background(), []string{}); err != errParse {
+			args := []string{}
+			if err := fset.Parse(args); err != nil {
+				t.Fatalf("fset.Parse() error: %v", err)
+			}
+
+			if errParse := src.Parse(t.Context(), args); err != errParse {
 				t.Errorf("src().Parse() = %v, src().Error() = %v, they should be same", errParse, err)
 			}
 		})

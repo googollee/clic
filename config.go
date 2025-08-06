@@ -3,104 +3,87 @@ package clic
 import (
 	"context"
 	"fmt"
-	"os"
 	"reflect"
-
-	"github.com/googollee/clic/sources"
-	"github.com/googollee/clic/structtags"
 )
-
-type config[Config any] struct {
-	value    Config
-	callback func(context.Context, *Config) error
-}
-
-func (c *config[Config]) Callback(ctx context.Context) error {
-	if c.callback == nil {
-		return nil
-	}
-
-	return c.callback(ctx, &c.value)
-}
-
-func (c *config[Config]) Get() *Config {
-	return &c.value
-}
-
-func (c *config[Config]) Value() reflect.Value {
-	return reflect.ValueOf(&c.value).Elem()
-}
 
 type configAdapter interface {
 	Callback(context.Context) error
 	Value() reflect.Value
 }
 
-var configs = newCLIConfigs()
-
-type cliConfigs struct {
-	configs  map[string]configAdapter
-	withHelp bool
+type configAny struct {
+	value    reflect.Value
+	callback reflect.Value
 }
 
-func newCLIConfigs() cliConfigs {
-	return cliConfigs{
-		configs:  make(map[string]configAdapter),
-		withHelp: true,
+func newConfigValue(value any) *configAny {
+	if value == nil {
+		panic("register with nil value")
+	}
+
+	v := reflect.ValueOf(value)
+	if v.Kind() != reflect.Ptr {
+		panic(fmt.Sprintf("register with invalid type %T, must be `*Type`", value))
+	}
+
+	return &configAny{
+		value: v,
 	}
 }
 
-func (c *cliConfigs) ExitWithError(err error) {
-	fmt.Fprintf(os.Stderr, "%v\n", err)
-	os.Exit(125)
+func newConfigCallback(callback any) *configAny {
+	if callback == nil {
+		panic("register with nil callback")
+	}
+
+	f := reflect.ValueOf(callback)
+	if f.Kind() != reflect.Func {
+		panic(fmt.Sprintf("register with invalid callback %T, must be `func(context.Context, *Type) error`", callback))
+	}
+
+	ft := f.Type()
+	if ft.NumIn() != 2 || ft.NumOut() != 1 {
+		panic(fmt.Sprintf("register with invalid callback %T, must be `func(context.Context, *Type) error`", callback))
+	}
+
+	if ft.In(0) != reflect.TypeFor[context.Context]() {
+		panic(fmt.Sprintf("register with invalid callback %T, must be `func(context.Context, *Type) error`", callback))
+	}
+
+	valType := ft.In(1)
+	if valType.Kind() != reflect.Ptr {
+		panic(fmt.Sprintf("register with invalid callback %T, must be `func(context.Context, *Type) error`", callback))
+	}
+
+	if ft.Out(0) != reflect.TypeFor[error]() {
+		panic(fmt.Sprintf("register with invalid callback %T, must be `func(context.Context, *Type) error`", callback))
+	}
+
+	return &configAny{
+		value:    reflect.New(valType.Elem()),
+		callback: f,
+	}
 }
 
-func (c *cliConfigs) Register(name string, adapter configAdapter) error {
-	if _, exist := c.configs[name]; exist {
-		return fmt.Errorf("already registered a config with name %s", name)
+func (c *configAny) Callback(ctx context.Context) error {
+	if !c.callback.IsValid() {
+		return nil
 	}
-	c.configs[name] = adapter
 
-	return nil
+	in := []reflect.Value{reflect.ValueOf(ctx), c.value}
+	out := c.callback.Call(in)
+
+	if out[0].IsNil() {
+		return nil
+	}
+
+	return out[0].Interface().(error)
 }
 
-func (c *cliConfigs) WithHelp() bool {
-	return c.withHelp
+func (c *configAny) Get() any {
+	return c.value.Interface()
 }
 
-func (c *cliConfigs) Prepare(srcs []sources.Source, fset sources.FlagSet) error {
-	var fields []structtags.Field
-	for name, handler := range c.configs {
-		f, err := structtags.ParseStruct(handler.Value(), []string{name})
-		if err != nil {
-			return fmt.Errorf("parse config %q error: %w", name, err)
-		}
-		fields = append(fields, f...)
-	}
-
-	for i := range len(srcs) {
-		src := srcs[i]
-		if err := src.Prepare(fset, fields); err != nil {
-			return fmt.Errorf("prepare source %T error: %w", src, err)
-		}
-	}
-
-	return nil
-}
-
-func (c *cliConfigs) Parse(ctx context.Context, srcs []sources.Source) error {
-	for i := len(srcs) - 1; i >= 0; i-- {
-		src := srcs[i]
-		if err := src.Parse(ctx); err != nil {
-			return fmt.Errorf("parse config from source %T error: %w", src, err)
-		}
-	}
-
-	for name, handler := range c.configs {
-		if err := handler.Callback(ctx); err != nil {
-			return fmt.Errorf("init config %q error: %w", name, err)
-		}
-	}
-
-	return nil
+func (c *configAny) Value() reflect.Value {
+	return c.value
 }

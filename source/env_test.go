@@ -20,9 +20,9 @@ func TestEnv(t *testing.T) {
 			name:    "FromValue",
 			options: []EnvOption{},
 			envs: map[string]string{
-				"CLIC_A1":       "123",
-				"CLIC_L1_A2":    "abc",
-				"CLIC_L2_L3_A3": "xyz",
+				"A1":       "123",
+				"L1_A2":    "abc",
+				"L2_L3_A3": "xyz",
 			},
 			wantA1: "123",
 			wantA2: "abc",
@@ -37,12 +37,12 @@ func TestEnv(t *testing.T) {
 			wantA3:  "a3",
 		},
 		{
-			name:    "WithPrefixSplitter",
-			options: []EnvOption{EnvPrefix("DEMO"), EnvSplitter("__")},
+			name:    "WithSplitter",
+			options: []EnvOption{EnvSplitter("__")},
 			envs: map[string]string{
-				"DEMO__A1":         "123",
-				"DEMO__L1__A2":     "abc",
-				"DEMO__L2__L3__A3": "xyz",
+				"A1":         "123",
+				"L1__A2":     "abc",
+				"L2__L3__A3": "xyz",
 			},
 			wantA1: "123",
 			wantA2: "abc",
@@ -55,7 +55,7 @@ func TestEnv(t *testing.T) {
 			src := Env(tc.options...)
 			a1, a2, a3 = "a1", "a2", "a3"
 
-			if err := src.Register(fields); err != nil {
+			if err := src.Register(nil, fields); err != nil {
 				t.Fatalf("src.Prepare(fields) returns error: %v", err)
 			}
 
@@ -63,7 +63,7 @@ func TestEnv(t *testing.T) {
 				t.Setenv(key, value)
 			}
 
-			if err := src.Parse(context.Background(), []string{}); err != nil {
+			if err := src.Parse(context.Background(), nil); err != nil {
 				t.Fatalf("src.Parse() should return no error, which is not: %v", err)
 			}
 
@@ -96,12 +96,12 @@ func TestEnvOptionError(t *testing.T) {
 				t.Errorf("src().Error() want an error, which is not")
 			}
 
-			errPrepare := src.Register(fields)
+			errPrepare := src.Register(nil, fields)
 			if err != errPrepare {
 				t.Errorf("src().Prepare() = %v, src().Error() = %v, they should be same", errPrepare, err)
 			}
 
-			errParse := src.Parse(context.Background(), []string{})
+			errParse := src.Parse(context.Background(), nil)
 			if err != errPrepare {
 				t.Errorf("src().Parse() = %v, src().Error() = %v, they should be same", errParse, err)
 			}
@@ -123,7 +123,7 @@ func TestEnvValueError(t *testing.T) {
 			fields: []structtags.Field{
 				{Name: []string{"int"}, Description: "int", Parser: parserWithError, Value: reflect.ValueOf(&i).Elem()},
 			},
-			envs: map[string]string{"CLIC_INT": "abc"}},
+			envs: map[string]string{"INT": "abc"}},
 	}
 
 	for _, tc := range tests {
@@ -131,7 +131,7 @@ func TestEnvValueError(t *testing.T) {
 			i = 0
 			src := Env()
 
-			if err := src.Register(tc.fields); err != nil {
+			if err := src.Register(nil, tc.fields); err != nil {
 				t.Errorf("src().Prepare() = %v, should be no error", err)
 			}
 
@@ -139,7 +139,7 @@ func TestEnvValueError(t *testing.T) {
 				t.Setenv(key, value)
 			}
 
-			if err := src.Parse(context.Background(), []string{}); err == nil {
+			if err := src.Parse(context.Background(), nil); err == nil {
 				t.Errorf("src().Parse() = %v, should be an error", err)
 			}
 		})

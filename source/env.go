@@ -11,13 +11,6 @@ import (
 
 type EnvOption func(*envSource) error
 
-func EnvPrefix(prefix string) EnvOption {
-	return func(s *envSource) error {
-		s.prefix = prefix
-		return nil
-	}
-}
-
 func EnvSplitter(splitter string) EnvOption {
 	return func(s *envSource) error {
 		if splitter == "" {
@@ -29,7 +22,6 @@ func EnvSplitter(splitter string) EnvOption {
 }
 
 type envSource struct {
-	prefix   string
 	splitter string
 	err      error
 	fields   []structtags.Field
@@ -37,7 +29,6 @@ type envSource struct {
 
 func Env(options ...EnvOption) Source {
 	ret := envSource{
-		prefix:   "clic",
 		splitter: "_",
 	}
 
@@ -54,7 +45,7 @@ func (s *envSource) Error() error {
 	return s.err
 }
 
-func (s *envSource) Register(fields []structtags.Field) error {
+func (s *envSource) Register(fset FlagSet, fields []structtags.Field) error {
 	if s.err != nil {
 		return s.err
 	}
@@ -71,9 +62,6 @@ func (s *envSource) Parse(ctx context.Context, args []string) error {
 
 	for _, field := range s.fields {
 		name := field.Name
-		if s.prefix != "" {
-			name = append([]string{s.prefix}, field.Name...)
-		}
 
 		envKey := strings.ToUpper(strings.Join(name, s.splitter))
 		envValue, exist := os.LookupEnv(envKey)

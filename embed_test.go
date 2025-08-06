@@ -2,6 +2,7 @@ package clic_test
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -11,14 +12,11 @@ import (
 
 func Example_embedStruct() {
 	// prepare env
-	for _, key := range []string{"CLIC_DEMO_VALUE"} {
+	for _, key := range []string{"DEMO_VALUE"} {
 		if err := os.Setenv(key, "value_from_env"); err != nil {
 			log.Fatal("set env error:", err)
 		}
 	}
-
-	// prepare flags
-	os.Args = append(os.Args, "-demo.inner.value", "value_from_flag")
 
 	// code starts
 	type Inner struct {
@@ -30,17 +28,19 @@ func Example_embedStruct() {
 		Inner Inner  `clic:"inner"`
 	}
 
-	loadConfig := clic.RegisterAndGet[Config]("demo")
+	fset := flag.NewFlagSet("", flag.PanicOnError)
+	set := clic.NewSet(fset)
+
+	var cfg Config
+	_ = set.RegisterValue("demo", &cfg)
 
 	ctx := context.Background()
-	clic.Init(ctx)
+	_ = set.Parse(ctx, []string{"-demo.inner.value", "value_from_flag"})
 
-	cfg := loadConfig()
-
-	fmt.Println("Value", cfg.Value)
+	fmt.Println("Value:", cfg.Value)
 	fmt.Println("Inner.Value:", cfg.Inner.Value)
 
 	// Output:
-	// Value value_from_env
+	// Value: value_from_env
 	// Inner.Value: value_from_flag
 }

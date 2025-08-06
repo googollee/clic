@@ -2,6 +2,7 @@ package clic_test
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -9,9 +10,9 @@ import (
 	"github.com/googollee/clic"
 )
 
-func ExampleInit_sourcePriorities() {
+func ExampleSet_sourcePriorities() {
 	// prepare env
-	for _, key := range []string{"CLIC_DEMO_VALUE_FLAG", "CLIC_DEMO_VALUE_ENV", "CLIC_DEMO_VALUE_FILE"} {
+	for _, key := range []string{"DEMO_VALUE_FLAG", "DEMO_VALUE_ENV", "DEMO_VALUE_FILE"} {
 		if err := os.Setenv(key, "value_from_env"); err != nil {
 			log.Fatal("set env error:", err)
 		}
@@ -37,9 +38,6 @@ func ExampleInit_sourcePriorities() {
 		log.Fatal("close temp file error:", err)
 	}
 
-	// prepare flags
-	os.Args = append(os.Args, "-config", cfgFile.Name(), "-demo.value_flag", "value_from_flag")
-
 	// code starts
 	type Config struct {
 		ValueFlag    string `clic:"value_flag,default,a test value in flag"`
@@ -47,13 +45,14 @@ func ExampleInit_sourcePriorities() {
 		ValueFile    string `clic:"value_file,default,a test value in config file"`
 		ValueDefault string `clic:"value_default,default,a test value by default"`
 	}
+	var cfg Config
 
-	loadConfig := clic.RegisterAndGet[Config]("demo")
+	fset := flag.NewFlagSet("", flag.PanicOnError)
+	set := clic.NewSet(fset, clic.DefaultSources...)
+	_ = set.RegisterValue("demo", &cfg)
 
 	ctx := context.Background()
-	clic.Init(ctx)
-
-	cfg := loadConfig()
+	_ = set.Parse(ctx, []string{"-config", cfgFile.Name(), "-demo.value_flag", "value_from_flag"})
 
 	fmt.Println("ValueFlag:", cfg.ValueFlag)
 	fmt.Println("ValueEnv:", cfg.ValueEnv)

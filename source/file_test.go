@@ -2,7 +2,6 @@ package source
 
 import (
 	"bytes"
-	"context"
 	"flag"
 	"testing"
 
@@ -37,9 +36,9 @@ func TestFile(t *testing.T) {
 		},
 		{
 			name:     "WithFlagFormat",
-			options:  []FileOption{FileFormat(JSON{}), FilePathFlag("c", "./testdata/valid.json")},
-			wantHelp: "  -c string\n    \tthe path of the config file (default \"./testdata/valid.json\")\n",
-			args:     []string{},
+			options:  []FileOption{FileFormat(JSON{}), FilePathFlag("c")},
+			wantHelp: "  -c string\n    \tthe path of the config file\n",
+			args:     []string{"-c", "./testdata/valid.json"},
 			wantA1:   "123",
 			wantA2:   "abc",
 			wantA3:   "xyz",
@@ -49,10 +48,10 @@ func TestFile(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			fset := flag.NewFlagSet("", flag.ContinueOnError)
-			src := File(fset, tc.options...)
+			src := File(tc.options...)
 			a1, a2, a3 = "a1", "a2", "a3"
 
-			if err := src.Register(fields); err != nil {
+			if err := src.Register(fset, fields); err != nil {
 				t.Fatalf("src.Prepare(fields) returns error: %v", err)
 			}
 
@@ -64,7 +63,11 @@ func TestFile(t *testing.T) {
 				t.Errorf("output diff: (-got, +want)\n%s", diff)
 			}
 
-			if err := src.Parse(context.Background(), tc.args); err != nil {
+			if err := fset.Parse(tc.args); err != nil {
+				t.Fatalf("fset.Parse() error: %v", err)
+			}
+
+			if err := src.Parse(t.Context(), tc.args); err != nil {
 				t.Fatalf("src.Parse() should return no error, which is not: %v", err)
 			}
 
@@ -82,46 +85,58 @@ func TestFile(t *testing.T) {
 
 	t.Run("InvalidFile", func(t *testing.T) {
 		fset := flag.NewFlagSet("", flag.ContinueOnError)
-		src := File(fset)
+		src := File()
 
 		var output bytes.Buffer
 		fset.SetOutput(&output)
 		t.Logf("output:\n%s", output.String())
 
-		if err := src.Register(fields); err != nil {
+		if err := src.Register(fset, fields); err != nil {
 			t.Fatalf("src.Prepare(fields) returns error: %v", err)
 		}
 
 		args := []string{"-config", "testdata/not_exist.json"}
-		if err := src.Parse(context.Background(), args); err == nil {
+		if err := fset.Parse(args); err != nil {
+			t.Fatalf("fset.Parse() error: %v", err)
+		}
+
+		if err := src.Parse(t.Context(), args); err == nil {
 			t.Fatalf("src.Parse() error: %v, want an error", err)
 		}
 	})
 
 	t.Run("EmptyConfigFile", func(t *testing.T) {
 		fset := flag.NewFlagSet("", flag.ContinueOnError)
-		src := File(fset)
+		src := File()
 
-		if err := src.Register(fields); err != nil {
+		if err := src.Register(fset, fields); err != nil {
 			t.Fatalf("src.Prepare(fields) returns error: %v", err)
 		}
 
 		args := []string{"-config", ""}
-		if err := src.Parse(context.Background(), args); err != nil {
+		if err := fset.Parse(args); err != nil {
+			t.Fatalf("fset.Parse() error: %v", err)
+		}
+
+		if err := src.Parse(t.Context(), args); err != nil {
 			t.Fatalf("src.Parse() = %v, want no error", err)
 		}
 	})
 
 	t.Run("InvalidFlag", func(t *testing.T) {
 		fset := flag.NewFlagSet("", flag.ContinueOnError)
-		src := File(fset)
+		src := File()
 
-		if err := src.Register(fields); err != nil {
+		if err := src.Register(fset, fields); err != nil {
 			t.Fatalf("src.Prepare(fields) returns error: %v", err)
 		}
 
 		args := []string{"-nonexist_flag", ""}
-		if err := src.Parse(context.Background(), args); err == nil {
+		if err := fset.Parse(args); err == nil {
+			t.Fatalf("fset.Parse() = nil, want an error")
+		}
+
+		if err := src.Parse(t.Context(), args); err != nil {
 			t.Fatalf("src.Parse() = %v, want no error", err)
 		}
 	})
@@ -133,24 +148,29 @@ func TestFileError(t *testing.T) {
 		options []FileOption
 	}{
 		{"EmptyCodec", []FileOption{FileFormat(nil)}},
-		{"EmptyPathFlag", []FileOption{FilePathFlag("", "")}},
+		{"EmptyPathFlag", []FileOption{FilePathFlag("")}},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			fset := flag.NewFlagSet("", flag.ContinueOnError)
-			src := File(fset, tc.options...)
+			src := File(tc.options...)
 			err := src.Error()
 			if err == nil {
 				t.Errorf("src().Error() want an error, which is not")
 			}
 
-			errPrepare := src.Register(fields)
+			errPrepare := src.Register(fset, fields)
 			if err != errPrepare {
 				t.Errorf("src().Prepare() = %v, src().Error() = %v, they should be same", errPrepare, err)
 			}
 
-			errParse := src.Parse(context.Background(), []string{})
+			args := []string{}
+			if err := fset.Parse(args); err != nil {
+				t.Fatalf("fset.Parse() error: %v", err)
+			}
+
+			errParse := src.Parse(t.Context(), args)
 			if err != errPrepare {
 				t.Errorf("src().Parse() = %v, src().Error() = %v, they should be same", errParse, err)
 			}
