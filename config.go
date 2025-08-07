@@ -6,17 +6,12 @@ import (
 	"reflect"
 )
 
-type configAdapter interface {
-	Callback(context.Context) error
-	Value() reflect.Value
-}
-
-type configAny struct {
+type config struct {
 	value    reflect.Value
 	callback reflect.Value
 }
 
-func newConfigValue(value any) *configAny {
+func newConfigValue(value any) *config {
 	if value == nil {
 		panic("register with nil value")
 	}
@@ -26,12 +21,12 @@ func newConfigValue(value any) *configAny {
 		panic(fmt.Sprintf("register with invalid type %T, must be `*Type`", value))
 	}
 
-	return &configAny{
+	return &config{
 		value: v,
 	}
 }
 
-func newConfigCallback(callback any) *configAny {
+func newConfigCallback(callback any) *config {
 	if callback == nil {
 		panic("register with nil callback")
 	}
@@ -59,13 +54,13 @@ func newConfigCallback(callback any) *configAny {
 		panic(fmt.Sprintf("register with invalid callback %T, must be `func(context.Context, *Type) error`", callback))
 	}
 
-	return &configAny{
+	return &config{
 		value:    reflect.New(valType.Elem()),
 		callback: f,
 	}
 }
 
-func (c *configAny) Callback(ctx context.Context) error {
+func (c *config) Callback(ctx context.Context) error {
 	if !c.callback.IsValid() {
 		return nil
 	}
@@ -80,10 +75,6 @@ func (c *configAny) Callback(ctx context.Context) error {
 	return out[0].Interface().(error)
 }
 
-func (c *configAny) Get() any {
-	return c.value.Interface()
-}
-
-func (c *configAny) Value() reflect.Value {
+func (c *config) Value() reflect.Value {
 	return c.value
 }

@@ -3,7 +3,6 @@ package clic
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/googollee/clic/source"
 	"github.com/googollee/clic/structtags"
@@ -18,7 +17,7 @@ var DefaultSources = []source.Source{
 type Set struct {
 	fset     source.FlagSet
 	sources  []source.Source
-	configs  map[string]configAdapter
+	configs  map[string]*config
 	withHelp bool
 }
 
@@ -30,7 +29,7 @@ func NewSet(fset source.FlagSet, source ...source.Source) *Set {
 	return &Set{
 		fset:    fset,
 		sources: source,
-		configs: make(map[string]configAdapter),
+		configs: make(map[string]*config),
 	}
 }
 
@@ -54,11 +53,6 @@ func (s *Set) RegisterCallback(prefix string, callback any) {
 	s.configs[prefix] = adapter
 }
 
-func (s *Set) WithHelp() {
-	s.fset.BoolVar(&s.withHelp, "help", false, "show the help")
-	s.fset.BoolVar(&s.withHelp, "h", false, "show the help")
-}
-
 func (s *Set) Parse(ctx context.Context, args []string) error {
 	if err := s.prepare(); err != nil {
 		return err
@@ -69,11 +63,6 @@ func (s *Set) Parse(ctx context.Context, args []string) error {
 			if err := s.fset.Parse(args); err != nil {
 				return err
 			}
-		}
-
-		if s.withHelp {
-			s.fset.PrintDefaults()
-			os.Exit(0)
 		}
 	}
 

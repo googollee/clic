@@ -1,6 +1,7 @@
 package clic_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"flag"
@@ -9,6 +10,7 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/googollee/clic"
 	"github.com/googollee/clic/source"
 )
@@ -129,16 +131,41 @@ func TestInvalidRegisterCallback(t *testing.T) {
 }
 
 func TestCallbackError(t *testing.T) {
-	fset := flag.NewFlagSet("", flag.ContinueOnError)
+	fset := flag.NewFlagSet("", flag.PanicOnError)
 	set := clic.NewSet(fset)
 
 	wantErr := fmt.Errorf("error")
-	set.RegisterCallback("callback", func(context.Context, *int) error {
+	set.RegisterCallback("callback", func(context.Context, *struct{ Int int }) error {
 		return wantErr
 	})
 
 	ctx := context.Background()
-	if err := set.Parse(ctx, []string{"-callback", "1"}); errors.Is(err, wantErr) {
+	if err := set.Parse(ctx, []string{"-callback.int", "1"}); !errors.Is(err, wantErr) {
 		t.Errorf("set.Parse() == %v, want %v", err, wantErr)
 	}
+}
+
+func TestHelp(t *testing.T) {
+	var output bytes.Buffer
+
+	fset := flag.NewFlagSet("", flag.ContinueOnError)
+	fset.SetOutput(&output)
+
+	set := clic.NewSet(fset)
+
+	set.RegisterCallback("callback", func(context.Context, *struct{ Int int }) error {
+		return nil
+	})
+
+	ctx := context.Background()
+	if got, want := set.Parse(ctx, []string{"-h"}), flag.ErrHelp; !errors.Is(got, want) {
+		t.Errorf("set.Parse() == %v, want %s", got, want)
+	}
+
+	t.Logf("output: %q", output.String())
+	wantOutput := "Usage:\n  -callback.int value\n    \t (default 0)\n  -config string\n    \tthe path of the config file\n"
+	if diff := cmp.Diff(output.String(), wantOutput); diff != "" {
+		t.Errorf("output diff(-got, +want):\n%s", diff)
+	}
+
 }
