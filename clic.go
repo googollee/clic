@@ -2,9 +2,11 @@
 package clic is short for CLI Config. It implements a framework to load/parse cli configuration from a file, environment or flags.
 
 Usage:
-  - Register functions ([RegisterWithCallback] and [RegisterAndGet]) should be called in "init()" of a package, or before [Init] calls.
-  - [Init] function should be called at the beginning of "main()", before calling functions in other sub-packages.
-  - [Init] function must not be called in "init()", because other sub-packages may not be initialized at that time.
+  - Register functions ([Register] and [RegisterCallback]) should be called in `func init()` in packages, or before calling [Parse].
+  - [Parse] function should be called at the beginning of "main()", before calling functions in other packages.
+  - [Parse] function must not be called in `func init()`, because other sub-packages may not finish initialization at that time.
+
+See examples for the usage.
 */
 package clic
 
