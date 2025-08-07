@@ -20,6 +20,32 @@ import (
 var CommandLine = NewSet(flag.CommandLine, DefaultSources...)
 
 /*
+RegisterType registers a "Config" type with the "name" as the scope name and returns a getter function which returns a parsed Config value.
+
+Example:
+
+	package main
+
+	func main() {
+		ctx := context.Background()
+
+		loadCfg := clic.RegisterType[database.Config]()
+
+		clic.Parse(ctx)
+
+		db := database.New(loadCfg())
+	}
+*/
+func RegisterType[Config any](name string) func(ctx context.Context) *Config {
+	var c Config
+	Register(name, &c)
+
+	return func(ctx context.Context) *Config {
+		return &c
+	}
+}
+
+/*
 Register registers a "Config" value with the "name" as the scope name. The value is filled after calling [Parse] function.
 
 Example:
