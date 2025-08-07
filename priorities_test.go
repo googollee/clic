@@ -53,9 +53,7 @@ func ExampleSet_sourcePriorities() {
 	fset := flag.NewFlagSet("", flag.PanicOnError)
 	set := clic.NewSet(fset, clic.DefaultSources...)
 
-	if err := set.RegisterValue("demo", &cfg); err != nil {
-		log.Fatal("register error:", err)
-	}
+	set.RegisterValue("demo", &cfg)
 
 	ctx := context.Background()
 	if err := set.Parse(ctx, args); err != nil {

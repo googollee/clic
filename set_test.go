@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"testing"
 
 	"github.com/googollee/clic"
 	"github.com/googollee/clic/source"
@@ -41,13 +42,8 @@ func ExampleSet() {
 	ctx := context.Background()
 
 	var db Database
-	if err := set.RegisterValue("database", &db); err != nil {
-		log.Fatal("register error:", err)
-	}
-
-	if err := set.RegisterCallback("log", initLog); err != nil {
-		log.Fatal("register error:", err)
-	}
+	set.RegisterValue("database", &db)
+	set.RegisterCallback("log", initLog)
 
 	if err := set.Parse(ctx, args); err != nil {
 		log.Fatal("parse error:", err)
@@ -60,4 +56,72 @@ func ExampleSet() {
 	// set log level: WARN
 	// database: {driver url}
 	// remain args: [other_cmd]
+}
+
+func TestInvalidRegister(t *testing.T) {
+	var value int
+	tests := []struct {
+		name  string
+		value any
+	}{
+		{"value", &value},
+		{"callback", &value},
+
+		{"nil_value", nil},
+		{"non_ptr", "abc"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fset := flag.NewFlagSet("", flag.ContinueOnError)
+			set := clic.NewSet(fset)
+
+			var i int
+			set.RegisterValue("value", &i)
+			set.RegisterCallback("callback", func(context.Context, *int) error { return nil })
+
+			defer func() {
+				if r := recover(); r == nil {
+					t.Error("set.Register() passes, want a panic")
+				}
+			}()
+
+			set.RegisterValue(tc.name, tc.value)
+		})
+	}
+}
+
+func TestInvalidRegisterCallback(t *testing.T) {
+	tests := []struct {
+		name string
+		fn   any
+	}{
+		{"value", func(context.Context, *int) error { return nil }},
+		{"callback", func(context.Context, *int) error { return nil }},
+
+		{"nil_func", nil},
+		{"non_ptr", func(context.Context, int) error { return nil }},
+		{"non_ctx", func(*int) error { return nil }},
+		{"non_return", func(context.Context, *int) {}},
+		{"non_error", func(context.Context, *int) int { return 1 }},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fset := flag.NewFlagSet("", flag.ContinueOnError)
+			set := clic.NewSet(fset)
+
+			var i int
+			set.RegisterValue("value", &i)
+			set.RegisterCallback("callback", func(context.Context, *int) error { return nil })
+
+			defer func() {
+				if r := recover(); r == nil {
+					t.Error("set.RegisterCallback() passes, want a panic")
+				}
+			}()
+
+			set.RegisterCallback(tc.name, tc.fn)
+		})
+	}
 }

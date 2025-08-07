@@ -34,26 +34,24 @@ func NewSet(fset source.FlagSet, source ...source.Source) *Set {
 	}
 }
 
-func (s *Set) RegisterValue(prefix string, value any) error {
+func (s *Set) RegisterValue(prefix string, value any) {
 	adapter := newConfigValue(value)
 
 	if _, exist := s.configs[prefix]; exist {
-		return fmt.Errorf("already registered a config with prefix %s", prefix)
+		panic(fmt.Errorf("already registered a config with prefix %s", prefix))
 	}
-	s.configs[prefix] = adapter
 
-	return nil
+	s.configs[prefix] = adapter
 }
 
-func (s *Set) RegisterCallback(prefix string, callback any) error {
+func (s *Set) RegisterCallback(prefix string, callback any) {
 	adapter := newConfigCallback(callback)
 
 	if _, exist := s.configs[prefix]; exist {
-		return fmt.Errorf("already registered a config with prefix %s", prefix)
+		panic(fmt.Errorf("already registered a config with prefix %s", prefix))
 	}
-	s.configs[prefix] = adapter
 
-	return nil
+	s.configs[prefix] = adapter
 }
 
 func (s *Set) WithHelp() {

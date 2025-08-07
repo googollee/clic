@@ -38,9 +38,7 @@ Example:
 	}
 */
 func Register(prefix string, value any) {
-	if err := CommandLine.RegisterValue(prefix, value); err != nil {
-		panic(fmt.Sprintf("register %q error: %v", prefix, err))
-	}
+	CommandLine.RegisterValue(prefix, value)
 }
 
 /*
@@ -67,9 +65,7 @@ Example:
 	}
 */
 func RegisterCallback(prefix string, f any) {
-	if err := CommandLine.RegisterCallback(prefix, f); err != nil {
-		panic(fmt.Sprintf("register %q error: %v", prefix, err))
-	}
+	CommandLine.RegisterCallback(prefix, f)
 }
 
 // Parse parses configuration from [DefaultSources] and [os.Args].
