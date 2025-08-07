@@ -32,10 +32,14 @@ func Example_embedStruct() {
 	set := clic.NewSet(fset)
 
 	var cfg Config
-	_ = set.RegisterValue("demo", &cfg)
+	if err := set.RegisterValue("demo", &cfg); err != nil {
+		log.Fatal("register error:", err)
+	}
 
 	ctx := context.Background()
-	_ = set.Parse(ctx, []string{"-demo.inner.value", "value_from_flag"})
+	if err := set.Parse(ctx, []string{"-demo.inner.value", "value_from_flag"}); err != nil {
+		log.Fatal("parse error:", err)
+	}
 
 	fmt.Println("Value:", cfg.Value)
 	fmt.Println("Inner.Value:", cfg.Inner.Value)

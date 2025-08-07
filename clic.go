@@ -37,8 +37,10 @@ Example:
 		db := database.New(dbCfg)
 	}
 */
-func Register(prefix string, value any) error {
-	return CommandLine.RegisterValue(prefix, value)
+func Register(prefix string, value any) {
+	if err := CommandLine.RegisterValue(prefix, value); err != nil {
+		panic(fmt.Sprintf("register %q error: %v", prefix, err))
+	}
 }
 
 /*
@@ -64,8 +66,10 @@ Example:
 		clic.Parse(ctx)
 	}
 */
-func RegisterCallback(prefix string, f any) error {
-	return CommandLine.RegisterCallback(prefix, f)
+func RegisterCallback(prefix string, f any) {
+	if err := CommandLine.RegisterCallback(prefix, f); err != nil {
+		panic(fmt.Sprintf("register %q error: %v", prefix, err))
+	}
 }
 
 // Parse parses configuration from [DefaultSources] and [os.Args].

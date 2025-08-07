@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/googollee/clic"
 )
@@ -35,10 +36,13 @@ func Example() {
 	ctx := context.Background()
 
 	var db Database
-	_ = clic.Register("database", &db)
-	_ = clic.RegisterCallback("log", initLog)
+	clic.Register("database", &db)
+	clic.RegisterCallback("log", initLog)
 
-	clic.Parse(ctx)
+	// config should be finished in a minute.
+	configCtx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	clic.Parse(configCtx)
 
 	fmt.Println("database:", db)
 	fmt.Println("remain args:", flag.Args())

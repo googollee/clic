@@ -38,6 +38,9 @@ func ExampleSet_sourcePriorities() {
 		log.Fatal("close temp file error:", err)
 	}
 
+	// prepare args
+	args := []string{"-config", cfgFile.Name(), "-demo.value_flag", "value_from_flag"}
+
 	// code starts
 	type Config struct {
 		ValueFlag    string `clic:"value_flag,default,a test value in flag"`
@@ -49,10 +52,15 @@ func ExampleSet_sourcePriorities() {
 
 	fset := flag.NewFlagSet("", flag.PanicOnError)
 	set := clic.NewSet(fset, clic.DefaultSources...)
-	_ = set.RegisterValue("demo", &cfg)
+
+	if err := set.RegisterValue("demo", &cfg); err != nil {
+		log.Fatal("register error:", err)
+	}
 
 	ctx := context.Background()
-	_ = set.Parse(ctx, []string{"-config", cfgFile.Name(), "-demo.value_flag", "value_from_flag"})
+	if err := set.Parse(ctx, args); err != nil {
+		log.Fatal("parse error:", err)
+	}
 
 	fmt.Println("ValueFlag:", cfg.ValueFlag)
 	fmt.Println("ValueEnv:", cfg.ValueEnv)

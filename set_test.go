@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"log/slog"
 
 	"github.com/googollee/clic"
@@ -40,11 +41,17 @@ func ExampleSet() {
 	ctx := context.Background()
 
 	var db Database
-	_ = set.RegisterValue("database", &db)
+	if err := set.RegisterValue("database", &db); err != nil {
+		log.Fatal("register error:", err)
+	}
 
-	_ = set.RegisterCallback("log", initLog)
+	if err := set.RegisterCallback("log", initLog); err != nil {
+		log.Fatal("register error:", err)
+	}
 
-	_ = set.Parse(ctx, args)
+	if err := set.Parse(ctx, args); err != nil {
+		log.Fatal("parse error:", err)
+	}
 
 	fmt.Println("database:", db)
 	fmt.Println("remain args:", fset.Args())
