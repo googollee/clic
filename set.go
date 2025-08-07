@@ -58,11 +58,9 @@ func (s *Set) Parse(ctx context.Context, args []string) error {
 		return err
 	}
 
-	if s.fset != nil {
-		if !s.fset.Parsed() {
-			if err := s.fset.Parse(args); err != nil {
-				return err
-			}
+	if s.fset != nil && !s.fset.Parsed() {
+		if err := s.fset.Parse(args); err != nil {
+			return err
 		}
 	}
 
