@@ -100,8 +100,9 @@ func TestInvalidRegisterCallback(t *testing.T) {
 		{"callback", func(context.Context, *int) error { return nil }},
 
 		{"nil_func", nil},
+		{"non_func", "str"},
 		{"non_ptr", func(context.Context, int) error { return nil }},
-		{"non_ctx", func(*int) error { return nil }},
+		{"non_ctx", func(int, *int) error { return nil }},
 		{"non_return", func(context.Context, *int) {}},
 		{"non_error", func(context.Context, *int) int { return 1 }},
 	}
