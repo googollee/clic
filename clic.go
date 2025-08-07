@@ -17,7 +17,7 @@ import (
 	"os"
 )
 
-var CommandLine = NewSet(flag.CommandLine)
+var CommandLine = NewSet(flag.CommandLine, DefaultSources...)
 
 /*
 Register registers a "Config" value with the "name" as the scope name. The value is filled after calling [Parse] function.
