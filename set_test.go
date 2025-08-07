@@ -2,6 +2,7 @@ package clic_test
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -124,5 +125,20 @@ func TestInvalidRegisterCallback(t *testing.T) {
 
 			set.RegisterCallback(tc.name, tc.fn)
 		})
+	}
+}
+
+func TestCallbackError(t *testing.T) {
+	fset := flag.NewFlagSet("", flag.ContinueOnError)
+	set := clic.NewSet(fset)
+
+	wantErr := fmt.Errorf("error")
+	set.RegisterCallback("callback", func(context.Context, *int) error {
+		return wantErr
+	})
+
+	ctx := context.Background()
+	if err := set.Parse(ctx, []string{"-callback", "1"}); errors.Is(err, wantErr) {
+		t.Errorf("set.Parse() == %v, want %v", err, wantErr)
 	}
 }
