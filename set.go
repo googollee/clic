@@ -15,10 +15,10 @@ var DefaultSources = []source.Source{
 }
 
 type Set struct {
-	fset     source.FlagSet
-	sources  []source.Source
-	configs  map[string]*config
-	withHelp bool
+	fset    source.FlagSet
+	sources []source.Source
+	configs map[string]*config
+	fields  []structtags.Field
 }
 
 func NewSet(fset source.FlagSet, source ...source.Source) *Set {
@@ -34,28 +34,23 @@ func NewSet(fset source.FlagSet, source ...source.Source) *Set {
 }
 
 func (s *Set) RegisterValue(prefix string, value any) {
-	adapter := newConfigValue(value)
-
-	if _, exist := s.configs[prefix]; exist {
-		panic(fmt.Errorf("already registered a config with prefix %s", prefix))
+	if err := s.register(prefix, newConfigValue(value)); err != nil {
+		panic(err)
 	}
-
-	s.configs[prefix] = adapter
 }
 
 func (s *Set) RegisterCallback(prefix string, callback any) {
-	adapter := newConfigCallback(callback)
-
-	if _, exist := s.configs[prefix]; exist {
-		panic(fmt.Errorf("already registered a config with prefix %s", prefix))
+	if err := s.register(prefix, newConfigCallback(callback)); err != nil {
+		panic(err)
 	}
-
-	s.configs[prefix] = adapter
 }
 
 func (s *Set) Parse(ctx context.Context, args []string) error {
-	if err := s.prepare(); err != nil {
-		return err
+	for i := range len(s.sources) {
+		src := s.sources[i]
+		if err := src.Register(s.fset, s.fields); err != nil {
+			return fmt.Errorf("prepare source %T error: %w", src, err)
+		}
 	}
 
 	if s.fset != nil && !s.fset.Parsed() {
@@ -64,34 +59,6 @@ func (s *Set) Parse(ctx context.Context, args []string) error {
 		}
 	}
 
-	if err := s.parse(ctx, args); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *Set) prepare() error {
-	var fields []structtags.Field
-	for name, handler := range s.configs {
-		f, err := structtags.ParseStruct(handler.Value(), []string{name})
-		if err != nil {
-			return fmt.Errorf("parse config %q error: %w", name, err)
-		}
-		fields = append(fields, f...)
-	}
-
-	for i := range len(s.sources) {
-		src := s.sources[i]
-		if err := src.Register(s.fset, fields); err != nil {
-			return fmt.Errorf("prepare source %T error: %w", src, err)
-		}
-	}
-
-	return nil
-}
-
-func (s *Set) parse(ctx context.Context, args []string) error {
 	for i := len(s.sources) - 1; i >= 0; i-- {
 		src := s.sources[i]
 		if err := src.Parse(ctx, args); err != nil {
@@ -104,6 +71,22 @@ func (s *Set) parse(ctx context.Context, args []string) error {
 			return fmt.Errorf("init config %q error: %w", name, err)
 		}
 	}
+
+	return nil
+}
+
+func (s *Set) register(prefix string, config *config) error {
+	fields, err := structtags.ParseStruct(config.Value(), []string{prefix})
+	if err != nil {
+		return err
+	}
+
+	if _, exist := s.configs[prefix]; exist {
+		return fmt.Errorf("already registered a config with prefix %s", prefix)
+	}
+
+	s.fields = append(s.fields, fields...)
+	s.configs[prefix] = config
 
 	return nil
 }

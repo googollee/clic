@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"strings"
 	"testing"
+	"unsafe"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/googollee/clic"
 	"github.com/googollee/clic/source"
 )
@@ -61,17 +62,88 @@ func ExampleSet() {
 	// remain args: [other_cmd]
 }
 
+func ExampleSet_showHelp() {
+	// structs
+	type Database struct {
+		Driver string `clic:"driver,sqlite3,the driver of the database [sqlite3,mysql,postgres]"`
+		URL    string `clic:"url,./database.sqlite,the url of the database"`
+	}
+	type Log struct {
+		Level slog.Level `clic:"level,INFO,the level of the log [DEBUG,INFO,WARN,ERROR]"`
+	}
+	initLog := func(ctx context.Context, log *Log) error {
+		fmt.Println("set log level:", log.Level)
+		return nil
+	}
+
+	// set with sources
+	fset := flag.NewFlagSet("", flag.ContinueOnError)
+	var helpOutput bytes.Buffer
+	fset.SetOutput(&helpOutput)
+	set := clic.NewSet(fset,
+		// The order means srouce priority, flag > config file > env
+		source.Flag(source.FlagSplitter(".")),
+		source.File(source.FilePathFlag("config"), source.FileFormat(source.JSON{})),
+		source.Env(source.EnvSplitter("_")),
+	)
+
+	// args
+	args := []string{"-h"}
+
+	// main code
+	ctx := context.Background()
+
+	var db Database
+	set.RegisterValue("database", &db)
+	set.RegisterCallback("log", initLog)
+
+	if err := set.Parse(ctx, args); !errors.Is(err, flag.ErrHelp) {
+		log.Fatal("parse error:", err)
+	}
+
+	fmt.Println(strings.ReplaceAll(helpOutput.String(), "\t", "    "))
+	// Output:
+	// Usage:
+	//   -config string
+	//         the path of the config file
+	//   -database.driver value
+	//         the driver of the database [sqlite3,mysql,postgres] (default sqlite3)
+	//   -database.url value
+	//         the url of the database (default ./database.sqlite)
+	//   -log.level value
+	//         the level of the log [DEBUG,INFO,WARN,ERROR] (default INFO)
+}
+
 func TestInvalidRegister(t *testing.T) {
-	var value int
+	type C struct{ Int int }
+	var c C
+
+	type Invalid struct {
+		Int int `clic:"int,invalid,int"`
+	}
+	var invalid Invalid
+
+	var vInterface any
+	var vFunc func()
+	var vChan chan struct{}
+	var vUnsafePointer unsafe.Pointer
+	var vMap map[string]string
+
 	tests := []struct {
 		name  string
 		value any
 	}{
-		{"value", &value},
-		{"callback", &value},
+		{"value", &c},
+		{"callback", &c},
 
 		{"nil_value", nil},
 		{"non_ptr", "abc"},
+		{"invalid_default", &invalid},
+		{"p_interface", &vInterface},
+		{"p_func", &vFunc},
+		{"p_chan", &vChan},
+		{"p_unsafe_pointer", &vUnsafePointer},
+		{"p_map", &vMap},
 	}
 
 	for _, tc := range tests {
@@ -79,9 +151,8 @@ func TestInvalidRegister(t *testing.T) {
 			fset := flag.NewFlagSet("", flag.ContinueOnError)
 			set := clic.NewSet(fset)
 
-			var i int
-			set.RegisterValue("value", &i)
-			set.RegisterCallback("callback", func(context.Context, *int) error { return nil })
+			set.RegisterValue("value", &c)
+			set.RegisterCallback("callback", func(context.Context, *C) error { return nil })
 
 			defer func() {
 				if r := recover(); r == nil {
@@ -95,15 +166,23 @@ func TestInvalidRegister(t *testing.T) {
 }
 
 func TestInvalidRegisterCallback(t *testing.T) {
+	type C struct{ Int int }
+	var c C
+
+	type Invalid struct {
+		Int int `clic:"int,invalid,int"`
+	}
+
 	tests := []struct {
 		name string
 		fn   any
 	}{
-		{"value", func(context.Context, *int) error { return nil }},
-		{"callback", func(context.Context, *int) error { return nil }},
+		{"value", func(context.Context, *C) error { return nil }},
+		{"callback", func(context.Context, *C) error { return nil }},
 
 		{"nil_func", nil},
 		{"non_func", "str"},
+		{"invalid_default", func(context.Context, *Invalid) error { return nil }},
 		{"non_ptr", func(context.Context, int) error { return nil }},
 		{"non_ctx", func(int, *int) error { return nil }},
 		{"non_return", func(context.Context, *int) {}},
@@ -115,9 +194,8 @@ func TestInvalidRegisterCallback(t *testing.T) {
 			fset := flag.NewFlagSet("", flag.ContinueOnError)
 			set := clic.NewSet(fset)
 
-			var i int
-			set.RegisterValue("value", &i)
-			set.RegisterCallback("callback", func(context.Context, *int) error { return nil })
+			set.RegisterValue("value", &c)
+			set.RegisterCallback("callback", func(context.Context, *C) error { return nil })
 
 			defer func() {
 				if r := recover(); r == nil {
@@ -131,41 +209,41 @@ func TestInvalidRegisterCallback(t *testing.T) {
 }
 
 func TestCallbackError(t *testing.T) {
-	fset := flag.NewFlagSet("", flag.PanicOnError)
+	wantErr := errors.New("error")
+
+	type C struct {
+		Int int `clic:"int,0,int"`
+	}
+	initC := func(context.Context, *C) error {
+		return wantErr
+	}
+
+	fset := flag.NewFlagSet("", flag.ContinueOnError)
 	set := clic.NewSet(fset)
 
-	wantErr := fmt.Errorf("error")
-	set.RegisterCallback("callback", func(context.Context, *struct{ Int int }) error {
-		return wantErr
-	})
+	set.RegisterCallback("callback", initC)
 
 	ctx := context.Background()
-	if err := set.Parse(ctx, []string{"-callback.int", "1"}); !errors.Is(err, wantErr) {
-		t.Errorf("set.Parse() == %v, want %v", err, wantErr)
+	if err := set.Parse(ctx, []string{}); !errors.Is(err, wantErr) {
+		t.Errorf("set.Parse() = %v, want: %v", err, wantErr)
 	}
 }
 
-func TestHelp(t *testing.T) {
-	var output bytes.Buffer
+func TestInvalidValue(t *testing.T) {
+	type C struct {
+		Int int `clic:"int,0,int"`
+	}
+	var c C
 
 	fset := flag.NewFlagSet("", flag.ContinueOnError)
-	fset.SetOutput(&output)
-
 	set := clic.NewSet(fset)
 
-	set.RegisterCallback("callback", func(context.Context, *struct{ Int int }) error {
-		return nil
-	})
+	set.RegisterValue("value", &c)
+
+	t.Setenv("VALUE_INT", "invalid_int")
 
 	ctx := context.Background()
-	if got, want := set.Parse(ctx, []string{"-h"}), flag.ErrHelp; !errors.Is(got, want) {
-		t.Errorf("set.Parse() == %v, want %s", got, want)
+	if err := set.Parse(ctx, []string{}); err == nil {
+		t.Errorf("set.Parse() = %v, want an error", err)
 	}
-
-	t.Logf("output: %q", output.String())
-	wantOutput := "Usage:\n  -callback.int value\n    \t (default 0)\n  -config string\n    \tthe path of the config file\n"
-	if diff := cmp.Diff(output.String(), wantOutput); diff != "" {
-		t.Errorf("output diff(-got, +want):\n%s", diff)
-	}
-
 }

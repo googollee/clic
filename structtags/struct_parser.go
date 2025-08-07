@@ -15,7 +15,7 @@ type Field struct {
 }
 
 func (f Field) MarshalText() ([]byte, error) {
-	return []byte(fmt.Sprintf("%v", f.Value.Interface())), nil
+	return fmt.Appendf(nil, "%v", f.Value.Interface()), nil
 }
 
 func (f Field) UnmarshalText(buf []byte) error {
@@ -28,7 +28,7 @@ func ParseStruct(v reflect.Value, name []string) ([]Field, error) {
 	}
 
 	if v.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("can't parse a %s type (names: %v), should be a struct", v.Kind(), name)
+		return nil, fmt.Errorf("can't parse a %s type (names: %v)", v.Kind(), name)
 	}
 
 	var ret []Field
